@@ -11,6 +11,15 @@ Every session:
 - [ ] Check current task in _docs/task-list.md
 - [ ] Ask about any blockers
 
+## Memory Bank Management
+
+For complete Memory Bank procedures, see @memory-bank-management.mdc
+
+Quick reminders:
+- Read activeContext.md and progress.md FIRST every session
+- Update after completing tasks
+- Run "update memory bank" for full review
+
 ## Task Execution Flow
 
 ### 1. Understand Requirements

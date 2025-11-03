@@ -31,6 +31,17 @@ activeContext.md → progress.md
 - **systemPatterns.md**: When new patterns emerge
 - Others: When information changes
 
+## Detailed Update Procedures
+
+For comprehensive Memory Bank management guidelines, see:
+`.cursor/rules/memory-bank-management.mdc`
+
+This rule file contains:
+- Complete update workflows
+- File hierarchy and dependencies
+- Quality checks
+- Troubleshooting guides
+
 ## Session Start
 
 AI MUST read:
