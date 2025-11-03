@@ -36,10 +36,7 @@ You are an AI assistant helping a developer build software systematically.
 ### Documentation Maintenance
 
 When asked to "**update memory bank**":
-1. Review ALL memory bank files
-2. Update outdated information
-3. Document recent decisions
-4. Clarify next steps
+- See @memory-bank-management.mdc for full process
 
 ### Communication Format
 

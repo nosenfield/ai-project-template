@@ -1,0 +1,296 @@
+---
+description: Memory Bank management, updates, and maintenance
+alwaysApply: true
+---
+
+# Memory Bank Management
+
+## Purpose
+
+The Memory Bank preserves project context across AI sessions. Since AI memory resets completely between sessions, the Memory Bank is the ONLY way to maintain project understanding.
+
+## File Structure & Hierarchy
+```
+memory-bank/
+├── projectbrief.md      # Foundation (source of truth)
+├── productContext.md    # Derives from projectbrief
+├── systemPatterns.md    # Derives from projectbrief
+├── techContext.md       # Derives from projectbrief
+├── activeContext.md     # Derives from above + recent work
+└── progress.md          # Derives from activeContext
+```
+
+**Dependency Flow:**
+```
+projectbrief.md (create FIRST)
+    ↓
+productContext.md + systemPatterns.md + techContext.md
+    ↓
+activeContext.md (MOST FREQUENTLY UPDATED)
+    ↓
+progress.md
+```
+
+## File Purposes
+
+### projectbrief.md (Foundation)
+**Created**: Once at project start
+**Updated**: Rarely (only if scope/goals change)
+**Contains**:
+- What we're building (1-2 sentences)
+- Core problem being solved
+- Target users
+- Success criteria
+- MVP scope (must-have features)
+- Explicitly out of scope
+- Technical constraints
+- Timeline
+
+### productContext.md
+**Created**: After projectbrief
+**Updated**: When UX goals or user needs change
+**Contains**:
+- Why project exists
+- Problems it solves
+- How it should work
+- User experience goals
+- Core user flows
+
+### systemPatterns.md
+**Created**: After projectbrief
+**Updated**: When architecture or patterns change
+**Contains**:
+- System architecture
+- Key technical decisions
+- Design patterns in use
+- Component relationships
+- Module boundaries
+- Data flow patterns
+
+### techContext.md
+**Created**: After projectbrief
+**Updated**: When tech stack or setup changes
+**Contains**:
+- Technologies used (with versions)
+- Development setup instructions
+- Technical constraints
+- Dependencies
+- Build/deployment process
+- Environment configuration
+
+### activeContext.md (MOST IMPORTANT - READ EVERY SESSION)
+**Created**: At project start
+**Updated**: CONTINUOUSLY (after every significant change)
+**Contains**:
+- Current work focus (what we're working on RIGHT NOW)
+- Current phase (e.g., "MVP Phase 2: Backend Development")
+- Active decisions (recent choices made with reasoning)
+- Recent changes (last 3 significant changes with dates)
+- Next steps (immediate this session, near-term this week)
+- Blockers / open questions
+- Key files currently being modified
+
+### progress.md (READ EVERY SESSION)
+**Created**: At project start
+**Updated**: After completing tasks
+**Contains**:
+- Completion status (phase-by-phase checklist)
+- What's working (completed & verified features)
+- What's next (priority-ordered tasks)
+- Known issues (critical vs. non-blocking)
+- Technical debt
+
+## Session Workflows
+
+### Every Session Start (MANDATORY)
+```
+1. Read memory-bank/activeContext.md
+2. Read memory-bank/progress.md
+3. Reference other files as needed for context
+```
+
+### After Completing a Task
+```
+Update in this order:
+1. memory-bank/progress.md
+   - Mark task complete
+   - Move to "What's working"
+   - Update next steps
+
+2. memory-bank/activeContext.md
+   - Add to "Recent changes"
+   - Update "Current focus" if shifting
+   - Update "Next steps"
+   - Update "Key files" if changed
+```
+
+### After Significant Change (Architecture, Patterns, Decisions)
+```
+Update relevant foundation file:
+- systemPatterns.md (if architecture changed)
+- techContext.md (if tech stack changed)
+- productContext.md (if UX goals changed)
+
+Then update activeContext.md to reference the change.
+```
+
+### When User Says "**update memory bank**"
+```
+This is a FULL REVIEW command. You must:
+
+1. Review ALL memory bank files (not just recent ones)
+2. Check for outdated information
+3. Verify activeContext matches actual project state
+4. Update progress.md with current status
+5. Document any recent decisions not yet captured
+6. Clarify next steps
+7. Report what was updated and why
+```
+
+## Update Triggers
+
+**Automatic (every time):**
+- Task completion → update progress.md + activeContext.md
+- Architectural decision → update systemPatterns.md + activeContext.md
+- Tech stack change → update techContext.md + activeContext.md
+
+**On request:**
+- "update memory bank" → full review of all files
+- "what's our current status?" → review progress.md, update if needed
+- Session end → update activeContext with current state
+
+**Scheduled:**
+- Weekly → verify all files are current
+- Monthly → review foundation files for major changes
+
+## Content Guidelines
+
+### What to Include
+✅ Concrete facts (what was decided, implemented, changed)
+✅ Reasoning behind decisions (why we chose X over Y)
+✅ Current blockers and open questions
+✅ Specific next actions
+✅ Known issues and workarounds
+✅ Key file locations
+
+### What to Exclude
+❌ Obvious information (don't say "we're using React" if it's in techContext.md)
+❌ Implementation details (those are in code/docs)
+❌ Redundant information (don't repeat across files)
+❌ Outdated information (remove when no longer relevant)
+❌ Temporary notes (use _context-summaries/ for those)
+
+## Quality Checks
+
+Before finishing any session, verify:
+- [ ] activeContext.md reflects CURRENT focus (not old work)
+- [ ] progress.md has latest task status
+- [ ] Recent changes documented in activeContext.md
+- [ ] No contradictions between files
+- [ ] Next steps are clear and actionable
+
+## Memory Bank Anti-Patterns
+
+**❌ DON'T:**
+- Create memory bank once and never update
+- Update only when explicitly asked
+- Duplicate information across files
+- Include implementation details
+- Write vague statements ("we should improve performance")
+
+**✅ DO:**
+- Update continuously as project evolves
+- Keep activeContext.md current after every significant change
+- Reference other files instead of duplicating
+- Document decisions and reasoning
+- Write specific, actionable statements ("optimize timeline rendering for 50+ clips")
+
+## New Project Initialization
+
+When starting a new project:
+
+1. Create projectbrief.md FIRST
+   - Fill from project description/requirements
+   - Define scope clearly
+   
+2. Create foundation files (order doesn't matter)
+   - productContext.md
+   - systemPatterns.md
+   - techContext.md
+   
+3. Create tracking files
+   - activeContext.md (current state)
+   - progress.md (tasks)
+
+4. Verify with scripts/verify-context.sh
+
+## Example Update Flow
+
+**Scenario: Just completed "User Authentication" feature**
+```markdown
+## Update Sequence:
+
+1. Update progress.md:
+   - [x] Task 2.1: User Authentication
+   - Move to "What's working" section
+   - Update next task focus
+
+2. Update activeContext.md:
+   ### Recent Changes
+   - User authentication implemented (Nov 3)
+     - JWT-based auth with refresh tokens
+     - Password hashing with bcrypt
+     - Rate limiting on login endpoint
+   
+   ### Current Focus
+   Was: User Authentication
+   Now: User Profile Management
+   
+   ### Key Files
+   Remove: src/auth/*.ts (complete)
+   Add: src/profile/*.ts (starting)
+
+3. Update systemPatterns.md (if needed):
+   If auth pattern is reusable:
+   - Document JWT pattern
+   - Document refresh token strategy
+   - Add to "Authentication Patterns" section
+```
+
+## Integration with Development Workflow
+
+Memory Bank updates are part of task completion:
+```
+Task Complete Checklist:
+- [ ] Code implemented
+- [ ] Tests passing
+- [ ] Documentation updated
+- [ ] Memory Bank updated ← THIS STEP
+- [ ] Ready for commit
+```
+
+Don't commit without updating Memory Bank.
+
+## Troubleshooting
+
+**"AI doesn't remember recent work"**
+→ Check activeContext.md - is it current?
+→ Run scripts/verify-context.sh
+→ Manually update activeContext.md with recent changes
+
+**"AI suggests outdated approaches"**
+→ systemPatterns.md may be stale
+→ Review and update architecture decisions
+
+**"AI asks questions about things we decided"**
+→ Decision not documented in activeContext.md
+→ Add to "Active decisions" section with reasoning
+
+**"Memory Bank feels bloated"**
+→ Archive old context to _context-summaries/
+→ Remove resolved issues from progress.md
+→ Keep only current/relevant information
+
+---
+
+**Remember**: Memory Bank is a LIVING system, not a static document. It evolves with your project. The more current it is, the better AI assistance you'll receive.
