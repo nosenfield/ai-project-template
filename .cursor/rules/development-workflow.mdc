@@ -15,10 +15,15 @@ Every session:
 
 For complete Memory Bank procedures, see @memory-bank-management.mdc
 
-Quick reminders:
+**Quick Reference:**
 - Read activeContext.md and progress.md FIRST every session
-- Update after completing tasks
-- Run "update memory bank" for full review
+- Update progress.md after completing tasks
+- Update activeContext.md after significant changes
+- Run "update memory bank" command for full review
+
+**Integration with Workflow:**
+Memory Bank updates are part of task completion (Step 4 - Report Completion).
+Don't mark task complete without updating Memory Bank.
 
 ## Task Execution Flow
 

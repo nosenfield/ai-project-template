@@ -69,6 +69,14 @@ scripts/                ← Automation scripts
 - `memory-bank/activeContext.md` - Current focus
 - `memory-bank/progress.md` - Status and next steps
 
+### Memory Bank Management
+- **`.cursor/rules/memory-bank-management.mdc`** - Complete Memory Bank procedures
+- **`memory-bank/README.md`** - Structure overview and quick reference
+- **`memory-bank/activeContext.md`** - Current work focus (read every session)
+- **`memory-bank/progress.md`** - Task status (read every session)
+
+**Critical**: Memory Bank is the MOST IMPORTANT component. AI reads this every session to understand project context. Without current Memory Bank files, AI effectiveness drops dramatically.
+
 ### Reference When Needed
 - `_docs/architecture.md` - System design
 - `_docs/guides/multi-agent-workflow.md` - Multi-agent workflows
@@ -92,7 +100,7 @@ Available commands (use with `/` in Cursor):
 4. Keep documentation in sync with code
 
 ### For AI Assistants
-1. Read memory bank FIRST every session
+1. Read Memory Bank FIRST every session (see `.cursor/rules/memory-bank-management.mdc` for procedures)
 2. Ask clarifying questions when uncertain
 3. Check in after completing tasks
 4. Never auto-commit without approval

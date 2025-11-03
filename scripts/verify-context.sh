@@ -57,17 +57,21 @@ echo ""
 if [ $MISSING -eq 0 ]; then
   echo "✅ Context health: GOOD"
   echo ""
-  echo "💡 Recommendation: Update memory bank if:"
-  echo "   - Completed features recently"
-  echo "   - Made architectural decisions"
-  echo "   - Discovered new patterns"
+  echo "💡 Recommendations:"
+  echo "   • Update Memory Bank if you've completed tasks recently"
+  echo "   • See .cursor/rules/memory-bank-management.mdc for procedures"
+  echo "   • Run scripts/update-docs.sh to review files"
   exit 0
 else
   echo "⚠️  Context health: NEEDS ATTENTION"
   echo ""
   echo "🔧 Action required:"
-  echo "   - Create missing files"
-  echo "   - Fill in empty templates"
-  echo "   - Update stale documentation"
+  echo "   • Create missing files"
+  echo "   • Fill in empty templates"
+  echo "   • Update stale documentation"
+  echo ""
+  echo "📖 See .cursor/rules/memory-bank-management.mdc for:"
+  echo "   • New project initialization procedure"
+  echo "   • File-by-file content guidance"
   exit 1
 fi

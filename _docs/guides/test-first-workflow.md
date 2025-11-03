@@ -95,6 +95,70 @@ git commit -m "feat: [feature]"
 - ✅ Less manual QA needed
 - ✅ High confidence in changes
 
+---
+
+## Memory Bank Integration
+
+Test-first workflow integrates with Memory Bank at key points:
+
+### After Writing Tests (RED Phase)
+
+Update `memory-bank/activeContext.md`:
+```markdown
+### Current Focus
+Writing tests for [feature]
+Tests defined but failing (RED phase)
+
+### Next Steps
+- Implement feature to pass tests
+- Verify self-correction loop
+```
+
+### After Implementation (GREEN Phase)
+
+Update `memory-bank/progress.md`:
+```markdown
+### What's Working
+- [x] [Feature name] - Tests passing
+  - Test coverage: [percentage]
+  - All acceptance criteria met
+```
+
+Update `memory-bank/activeContext.md`:
+```markdown
+### Recent Changes
+- [Feature] implemented (Nov 3)
+  - Tests written first (TDD approach)
+  - Self-correction loop validated
+  - [Specific implementation notes]
+```
+
+### After Refactoring (REFACTOR Phase)
+
+Update `memory-bank/activeContext.md` if patterns changed:
+```markdown
+### Recent Changes
+- Refactored [component] for performance
+  - Tests remained green throughout
+  - [Performance improvement details]
+```
+
+If pattern is reusable, also update `memory-bank/systemPatterns.md`:
+```markdown
+## [Pattern Name]
+
+Context: Discovered during [feature] refactoring
+Pattern: [Description]
+When to use: [Guidelines]
+```
+
+### Complete Procedures
+
+For full Memory Bank update workflows, see:
+`.cursor/rules/memory-bank-management.mdc`
+
+**Key rule**: Update Memory Bank AFTER each phase (RED, GREEN, REFACTOR), not just at final completion.
+
 ## Test Templates
 
 Use from `tests/patterns/`:

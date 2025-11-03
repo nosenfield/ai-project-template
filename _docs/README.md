@@ -12,10 +12,21 @@ Read in this order:
 
 ### For AI Sessions
 
-AI must read:
-1. [memory-bank/activeContext.md](../memory-bank/activeContext.md)
-2. [memory-bank/progress.md](../memory-bank/progress.md)
-3. [architecture.md](./architecture.md) (when implementing)
+**Mandatory at every session start:**
+1. [memory-bank/activeContext.md](../memory-bank/activeContext.md) - Current work focus
+2. [memory-bank/progress.md](../memory-bank/progress.md) - Task status
+
+**For Memory Bank management:**
+- [.cursor/rules/memory-bank-management.mdc](../.cursor/rules/memory-bank-management.mdc) - Complete procedures
+
+**When implementing features:**
+- [architecture.md](./architecture.md) - System design reference
+- [best-practices/](./best-practices/) - Stack-specific patterns
+
+**After completing work:**
+- Update Memory Bank (see memory-bank-management.mdc)
+- Update progress.md with completion status
+- Document decisions in activeContext.md
 
 ## Documentation Structure
 
