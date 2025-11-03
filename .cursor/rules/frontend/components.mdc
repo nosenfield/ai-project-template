@@ -1,0 +1,87 @@
+Description: Frontend component standards (customize for your stack)
+Globs: src/components/**/*.{tsx,jsx}
+
+# Component Standards
+
+## General Principles
+
+- Use functional components only
+- Props must be explicitly typed
+- Components under 200 lines
+- Test critical paths
+- Single responsibility principle
+
+## Component Structure
+
+```typescript
+// ✅ Good structure
+interface ComponentProps {
+  data: DataType;
+  onAction: (id: string) => void;
+}
+
+export function Component({ data, onAction }: ComponentProps) {
+  // Hooks at top
+  const [state, setState] = useState<StateType>(initialState);
+
+  // Event handlers
+  const handleClick = (id: string) => {
+    onAction(id);
+  };
+
+  // Render
+  return (
+    <div>
+      {/* JSX */}
+    </div>
+  );
+}
+```
+
+## Rules
+
+### DO
+- Explicit prop types
+- Descriptive component names
+- Extract complex logic to hooks
+- Use composition over prop drilling
+- Test user interactions
+
+### DON'T
+- Use `any` type
+- Create class components
+- Prop drill beyond 2 levels
+- Direct DOM manipulation
+- Side effects in render
+
+## File Organization
+
+```
+components/
+├── Button/
+│   ├── Button.tsx        # Component
+│   ├── Button.test.tsx   # Tests
+│   └── index.ts          # Export
+```
+
+## Testing Requirements
+
+```typescript
+describe('Component', () => {
+  it('should render with required props', () => {
+    // Test rendering
+  });
+
+  it('should handle user interactions', () => {
+    // Test events
+  });
+
+  it('should handle edge cases', () => {
+    // Test error states
+  });
+});
+```
+
+---
+
+**Note**: Customize this file for your specific frontend framework (React, Vue, Svelte, etc.)

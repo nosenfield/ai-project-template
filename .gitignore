@@ -1,0 +1,59 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+.cursor-tutor
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Context summaries (ephemeral session notes)
+_context-summaries/
+
+# Project-specific files that will be filled during setup
+# (Users rename .template files to actual files)
+memory-bank/projectbrief.md
+memory-bank/productContext.md
+memory-bank/systemPatterns.md
+memory-bank/techContext.md
+memory-bank/activeContext.md
+memory-bank/progress.md
+_docs/architecture.md
+_docs/task-list.md

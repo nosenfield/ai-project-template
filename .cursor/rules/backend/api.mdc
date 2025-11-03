@@ -1,0 +1,115 @@
+Description: Backend API standards (customize for your stack)
+Globs: src/api/**/*.{ts,js}
+
+# API Standards
+
+## General Principles
+
+- RESTful design (or GraphQL if applicable)
+- Input validation on all endpoints
+- Proper error handling
+- Structured logging
+- Authentication & authorization checks
+
+## API Endpoint Structure
+
+```typescript
+// ✅ Good structure
+import { Request, Response } from 'express';
+import { z } from 'zod';
+
+// Input validation schema
+const createUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(100),
+});
+
+export async function createUser(req: Request, res: Response) {
+  try {
+    // 1. Validate input
+    const data = createUserSchema.parse(req.body);
+
+    // 2. Check authorization
+    if (!req.user?.canCreateUsers) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // 3. Business logic
+    const user = await userService.create(data);
+
+    // 4. Log success
+    logger.info('User created', {
+      module: 'api',
+      op: 'createUser',
+      correlationId: req.id,
+      data: { userId: user.id }
+    });
+
+    // 5. Return response
+    return res.status(201).json({ user });
+
+  } catch (error) {
+    // 6. Error handling
+    logger.error('Failed to create user', {
+      module: 'api',
+      op: 'createUser',
+      correlationId: req.id,
+      error
+    });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+```
+
+## Rules
+
+### DO
+- Validate ALL inputs (use Zod, Joi, or similar)
+- Return proper HTTP status codes
+- Use structured error responses
+- Add rate limiting for sensitive endpoints
+- Include correlation IDs for tracing
+- Sanitize user input (prevent injection)
+- Hash passwords (bcrypt, scrypt, argon2)
+
+### DON'T
+- Trust user input without validation
+- Expose internal errors to clients
+- Log sensitive data (passwords, tokens, PII)
+- Use string concatenation for SQL queries
+- Return different errors for existing vs. non-existing users (timing attacks)
+
+## Error Response Format
+
+```typescript
+// ✅ Good: Structured error response
+{
+  error: "Validation failed",
+  details: [
+    { field: "email", message: "Invalid email format" }
+  ],
+  correlationId: "abc-123-def"
+}
+
+// ❌ Bad: Exposing internal details
+{
+  error: "Error: Connection to database failed at ..."
+}
+```
+
+## Security Checklist
+
+- [ ] Input validation
+- [ ] SQL injection prevention (use parameterized queries)
+- [ ] XSS prevention (escape HTML)
+- [ ] CSRF protection
+- [ ] Rate limiting
+- [ ] Authentication required
+- [ ] Authorization checks
+- [ ] No secrets in code
+- [ ] PII redacted from logs
+
+---
+
+**Note**: Customize this file for your specific backend framework (Express, Fastify, Nest.js, etc.)

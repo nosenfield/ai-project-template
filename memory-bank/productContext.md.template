@@ -1,0 +1,72 @@
+# Product Context: [PROJECT NAME]
+
+**Last Updated**: [DATE]
+
+## Why This Project Exists
+
+### Problem Statement
+[Describe the problem we're solving in detail]
+
+### User Pain Points
+1. [Pain point 1]
+2. [Pain point 2]
+3. [Pain point 3]
+
+### Our Solution
+[How does this project solve the problem?]
+
+---
+
+## Target Users
+
+### Primary User Persona
+- **Name**: [Persona name]
+- **Role**: [Job title/role]
+- **Goals**: [What they want to accomplish]
+- **Frustrations**: [Current pain points]
+- **Tech Savviness**: [Beginner/Intermediate/Advanced]
+
+### Secondary User Persona (if applicable)
+- **Name**: [Persona name]
+- **Role**: [Job title/role]
+- **Goals**: [What they want to accomplish]
+
+---
+
+## Key User Flows
+
+### Flow 1: [Primary User Journey]
+1. User [action]
+2. System [response]
+3. User [action]
+4. Result: [outcome]
+
+### Flow 2: [Secondary User Journey]
+1. User [action]
+2. System [response]
+3. Result: [outcome]
+
+---
+
+## Product Goals
+
+### Short-term (MVP)
+- [Goal 1]
+- [Goal 2]
+
+### Long-term (Future)
+- [Goal 1]
+- [Goal 2]
+
+---
+
+## Success Metrics
+
+### User Engagement
+- [Metric]: [Target]
+
+### Business Impact
+- [Metric]: [Target]
+
+### Technical Performance
+- [Metric]: [Target]

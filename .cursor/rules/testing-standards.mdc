@@ -1,0 +1,87 @@
+Description: Testing requirements and patterns
+Globs: **/*.test.{ts,tsx,js,jsx}
+
+# Testing Standards
+
+## Test-First Development
+
+### For ALL New Features
+
+1. **Write Tests First**
+```
+You are the TESTING agent.
+Write comprehensive tests for [feature]:
+- Happy path
+- Edge cases
+- Error handling
+- Integration points
+
+Tests should FAIL initially (no implementation).
+```
+
+2. **Implement to Pass**
+```
+You are the [BACKEND/FRONTEND] agent.
+Implement [feature] to pass all tests.
+```
+
+3. **Verify Loop**
+```
+Run tests → If fail: analyze & fix → Repeat until green
+```
+
+## Test Structure
+
+### AAA Pattern (Arrange, Act, Assert)
+
+```typescript
+describe('[Feature]', () => {
+  it('should [expected behavior]', () => {
+    // Arrange - Set up test data
+    const input = { ... };
+
+    // Act - Execute function
+    const result = functionUnderTest(input);
+
+    // Assert - Verify outcome
+    expect(result).toEqual(expected);
+  });
+});
+```
+
+### Test Coverage Requirements
+
+- **Unit Tests**: All business logic functions
+- **Integration Tests**: API endpoints, database interactions
+- **E2E Tests**: Critical user paths
+- **Target Coverage**: >80% for production code
+
+## Test Naming Conventions
+
+```typescript
+// ✅ Good: Describes behavior
+it('should return 404 when user not found')
+it('should validate email format before saving')
+it('should calculate total including tax')
+
+// ❌ Bad: Tests implementation details
+it('should call getUserById with correct params')
+it('should set isLoading to false')
+```
+
+## Test Templates
+
+Use patterns from `tests/patterns/`:
+- `crud.test.ts` - Standard CRUD operations
+- `async.test.ts` - Async workflows
+- `error.test.ts` - Error handling
+- `performance.test.ts` - Performance benchmarks
+
+## Pre-Commit Requirements
+
+Tests MUST pass before committing:
+```bash
+npm test || exit 1
+```
+
+No commits with failing tests.

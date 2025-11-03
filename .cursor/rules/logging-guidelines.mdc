@@ -1,0 +1,81 @@
+Description: Structured logging standards
+Globs: **/*.{ts,tsx,js,jsx}
+
+# Logging Guidelines
+
+## Standard Log Format
+
+```typescript
+interface LogEntry {
+  ts: string;           // ISO8601 timestamp
+  level: LogLevel;      // trace|debug|info|warn|error|fatal
+  module: string;       // e.g., "auth", "payment", "ui-core"
+  op: string;           // Operation name, e.g., "loginUser"
+  correlationId: string; // Trace requests across services
+  msg: string;          // Human-readable message
+  data?: object;        // Structured context (no PII)
+  error?: {             // Error details if applicable
+    name: string;
+    message: string;
+    stack: string;
+  };
+}
+```
+
+## Log Levels
+
+| Level | When to Use | Examples |
+|-------|-------------|----------|
+| `trace` | Very detailed, hot path debugging | Function entry/exit, loop iterations |
+| `debug` | Detailed diagnostic info | Variable values, intermediate states |
+| `info` | Important business events | User login, order placed, job completed |
+| `warn` | Recoverable errors, degraded state | Retry attempts, fallback used, deprecated API |
+| `error` | Errors requiring attention | Failed requests, unhandled exceptions |
+| `fatal` | System-level failures | Cannot continue, immediate action needed |
+
+## Implementation Pattern
+
+```typescript
+// ✅ Good: Structured, actionable
+logger.info('User logged in', {
+  module: 'auth',
+  op: 'loginUser',
+  correlationId: req.id,
+  data: { userId: user.id, method: 'oauth' }
+});
+
+// ❌ Bad: Unstructured, no context
+console.log('Login success');
+```
+
+## PII Handling
+
+```typescript
+// ❌ Bad: Logs sensitive data
+logger.info('User details', { email: user.email, ssn: user.ssn });
+
+// ✅ Good: Redacts PII
+logger.info('User details', { userId: user.id, method: 'oauth' });
+```
+
+## Correlation IDs
+
+```typescript
+// Generate at entry point
+const correlationId = generateId();
+
+// Pass through call chain
+await authService.login({ correlationId });
+await userService.getProfile(userId, { correlationId });
+
+// All logs include same ID → trace full flow
+```
+
+## Rules
+
+1. **Always use structured logging** (JSON format preferred)
+2. **Never log PII** (email, SSN, passwords, tokens, etc.)
+3. **Use correlation IDs** for request tracing
+4. **Choose appropriate log levels**
+5. **Include context** (module, operation, data)
+6. **Log errors with stack traces** (but sanitize for external exposure)

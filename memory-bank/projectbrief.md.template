@@ -1,0 +1,57 @@
+# Project Brief: [PROJECT NAME]
+
+**Version**: 1.0
+**Last Updated**: [DATE]
+
+## Project Overview
+
+### What We're Building
+[One paragraph description]
+
+### Core Problem
+[What problem does this solve?]
+
+### Target Users
+[Who will use this?]
+
+### Success Criteria
+[How do we know we succeeded?]
+
+---
+
+## MVP Scope
+
+### Must Have
+- [ ] Feature 1
+- [ ] Feature 2
+- [ ] Feature 3
+
+### Explicitly Out of Scope
+- Feature X
+- Feature Y
+- Feature Z
+
+---
+
+## Technical Constraints
+
+### Performance Targets
+- [Metric 1]: [Target]
+- [Metric 2]: [Target]
+
+### Platform Requirements
+- [Platform 1]
+- [Platform 2]
+
+### Dependencies
+- [External system 1]
+- [External system 2]
+
+---
+
+## Project Timeline
+
+- **MVP Target**: [Date]
+- **Key Milestones**:
+  - [Milestone 1]: [Date]
+  - [Milestone 2]: [Date]

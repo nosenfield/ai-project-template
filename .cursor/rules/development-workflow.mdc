@@ -1,0 +1,112 @@
+Description: Standard development workflow and task execution
+Globs: **/*
+
+# Development Workflow
+
+## Session Start Checklist
+
+Every session:
+- [ ] Read memory-bank/activeContext.md
+- [ ] Read memory-bank/progress.md
+- [ ] Check current task in _docs/task-list.md
+- [ ] Ask about any blockers
+
+## Task Execution Flow
+
+### 1. Understand Requirements
+```
+Questions to answer before coding:
+- What is the acceptance criteria?
+- What files need to be created/modified?
+- What are the dependencies?
+- How will this be tested?
+```
+
+### 2. Implement with Context
+```
+- Reference architecture patterns
+- Follow established conventions
+- Add appropriate logging
+- Include error handling
+```
+
+### 3. Verify Before Completion
+```
+- Run tests
+- Check linting
+- Verify builds
+- Test manually if needed
+```
+
+### 4. Report Completion
+```
+✅ TASK COMPLETED
+
+Task: [Task ID and Name]
+Files Changed:
+- [list files]
+
+Testing:
+- [what was tested]
+- [results]
+
+Acceptance Criteria:
+- [x] Criterion 1
+- [x] Criterion 2
+
+Ready for Next: Yes/No
+Blockers: [any issues]
+```
+
+### 5. Wait for Approval
+```
+Do NOT proceed to next task automatically.
+Wait for explicit approval.
+```
+
+## Context Summary Creation
+
+After completing complex/critical tasks, ASK:
+```
+📄 CREATE CONTEXT SUMMARY?
+
+Task completed: [Task name]
+Complexity: [Straightforward/Complex/Critical]
+Suggest summary: Yes/No - [reason]
+
+Would you like me to create a summary?
+A) Yes, create it
+B) No, skip for now
+```
+
+**When to recommend summaries:**
+- ✅ Difficult bug fixes with non-obvious solutions
+- ✅ Important architectural decisions
+- ✅ Complex integrations or configurations
+- ✅ Tricky algorithms or performance optimizations
+- ❌ Straightforward implementations
+- ❌ Simple CRUD operations
+
+## Multi-Agent Handoff
+
+When switching agents:
+```markdown
+## Handoff to [NEXT AGENT]
+
+### Goal
+[What needs to be accomplished]
+
+### Context
+[Current state]
+
+### Completed Work
+- [Specific changes]
+- [Files affected]
+
+### Open Questions
+- [Issues]
+
+### Next Agent Needs
+- [Requirements]
+- [Expected inputs]
+```

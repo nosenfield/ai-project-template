@@ -1,0 +1,62 @@
+# Progress Tracker: [PROJECT NAME]
+
+**Last Updated**: [DATE]
+
+## Completion Status
+
+### Phase 1: [NAME] - [STATUS]
+- [x] Task 1.1 - [Name]
+- [x] Task 1.2 - [Name]
+- [ ] Task 1.3 - [Name]
+
+### Phase 2: [NAME] - [STATUS]
+- [ ] Task 2.1 - [Name]
+- [ ] Task 2.2 - [Name]
+
+---
+
+## What's Working
+
+### Completed & Verified
+- Feature X - Tested and deployed
+- Component Y - All tests passing
+- Integration Z - Production ready
+
+---
+
+## What's Next
+
+### Priority 1 (Immediate)
+- [ ] [Task description]
+
+### Priority 2 (This Week)
+- [ ] [Task description]
+
+### Priority 3 (This Month)
+- [ ] [Task description]
+
+---
+
+## Known Issues
+
+### Critical
+- [Issue description] - [Status]
+
+### Non-Blocking
+- [Issue description] - [Status]
+
+---
+
+## Technical Debt
+
+### High Priority
+- [Debt item] - [Reason]
+
+### Medium Priority
+- [Debt item] - [Reason]
+
+---
+
+## Notes
+
+[Any additional context or reminders]

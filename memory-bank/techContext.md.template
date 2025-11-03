@@ -1,0 +1,136 @@
+# Technical Context: [PROJECT NAME]
+
+**Last Updated**: [DATE]
+
+## Tech Stack
+
+### Frontend
+- **Framework**: [e.g., React 18.2]
+- **Language**: [e.g., TypeScript 5.0]
+- **Build Tool**: [e.g., Vite 4.x]
+- **Styling**: [e.g., Tailwind CSS]
+- **State Management**: [e.g., Zustand, Redux]
+
+### Backend
+- **Runtime**: [e.g., Node.js 18]
+- **Framework**: [e.g., Express, Fastify]
+- **Language**: [e.g., TypeScript]
+- **Database**: [e.g., PostgreSQL 15]
+- **ORM/Query Builder**: [e.g., Prisma, Drizzle]
+
+### Infrastructure
+- **Hosting**: [e.g., Vercel, AWS]
+- **Database Hosting**: [e.g., Supabase, PlanetScale]
+- **CI/CD**: [e.g., GitHub Actions]
+- **Monitoring**: [e.g., Sentry, DataDog]
+
+### Testing
+- **Unit Tests**: [e.g., Vitest]
+- **Integration Tests**: [e.g., Supertest]
+- **E2E Tests**: [e.g., Playwright]
+- **Coverage Tool**: [e.g., Istanbul, c8]
+
+---
+
+## Development Setup
+
+### Prerequisites
+```bash
+- Node.js 18+
+- npm 9+ or pnpm 8+
+- [Any other requirements]
+```
+
+### Installation
+```bash
+# Clone repository
+git clone [repo-url]
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your values
+
+# Run database migrations (if applicable)
+npm run db:migrate
+
+# Start development server
+npm run dev
+```
+
+### Environment Variables
+```bash
+# Required
+DATABASE_URL=          # Database connection string
+API_KEY=              # API key for [service]
+
+# Optional
+LOG_LEVEL=info        # Logging level (default: info)
+```
+
+---
+
+## Dependencies
+
+### Core Dependencies
+- `[package]@[version]` - [Purpose]
+- `[package]@[version]` - [Purpose]
+
+### Development Dependencies
+- `[package]@[version]` - [Purpose]
+- `[package]@[version]` - [Purpose]
+
+### Why We Chose These
+[Explanation of key technology choices]
+
+---
+
+## Technical Constraints
+
+### Performance Requirements
+- Page load: < 2s
+- API response time: < 200ms (p95)
+- [Other performance targets]
+
+### Platform Constraints
+- Must support: [Browsers/platforms]
+- Must work offline: [Yes/No]
+- Mobile responsive: [Yes/No]
+
+### Security Requirements
+- Authentication: [Method]
+- Authorization: [Approach]
+- Data encryption: [At rest/in transit]
+
+---
+
+## Build & Deployment
+
+### Build Process
+```bash
+npm run build
+```
+
+### Deployment
+```bash
+npm run deploy
+```
+
+### Environments
+- **Development**: [URL or local]
+- **Staging**: [URL]
+- **Production**: [URL]
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Issue 1: [Problem]
+**Solution**: [How to fix]
+
+#### Issue 2: [Problem]
+**Solution**: [How to fix]
