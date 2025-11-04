@@ -47,13 +47,11 @@ temp/
 # Context summaries (ephemeral session notes)
 _context-summaries/
 
-# Project-specific files that will be filled during setup
-# (Users rename .template files to actual files)
-memory-bank/projectbrief.md
-memory-bank/productContext.md
-memory-bank/systemPatterns.md
-memory-bank/techContext.md
-memory-bank/activeContext.md
-memory-bank/progress.md
-_docs/architecture.md
-_docs/task-list.md
+# Project output (screenshots, reports)
+# Ignore everything in output/
+output/**
+# But keep .gitkeep files to preserve directory structure
+!output/
+!output/.gitkeep
+!output/**/
+!output/**/.gitkeep
