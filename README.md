@@ -35,12 +35,18 @@ cd ../my-new-project
 
 ### Starting Development Session
 
-AI assistant should:
+**Use the `/begin-development` command in Cursor** to automatically:
 ```
 1. Read memory-bank/activeContext.md
 2. Read memory-bank/progress.md
-3. Check current task in _docs/task-list.md
-4. Begin work with context
+3. Confirm current phase and next tasks
+4. Display recent changes and active decisions
+```
+
+Or manually prompt AI assistant:
+```
+Read @memory-bank/activeContext.md and @memory-bank/progress.md.
+Confirm current phase and next task.
 ```
 
 ### After Development Session
@@ -85,6 +91,7 @@ scripts/                ← Automation scripts
 ## Cursor Slash Commands
 
 Available commands (use with `/` in Cursor):
+- `/begin-development` - Start session: read Memory Bank, confirm current state (use this FIRST every session)
 - `/start-task [id]` - Read context, produce implementation plan
 - `/implement [id]` - Execute approved plan with test-first workflow
 - `/fix-tests` - Self-correcting loop to fix failing tests
@@ -94,7 +101,7 @@ Available commands (use with `/` in Cursor):
 ## Best Practices
 
 ### For Developers
-1. Start sessions by having AI read activeContext.md and progress.md
+1. **Start every session with `/begin-development`** to load context automatically
 2. Update memory bank after completing features
 3. Run verify-context.sh weekly
 4. Keep documentation in sync with code
