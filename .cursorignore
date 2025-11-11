@@ -1,0 +1,8 @@
+# Hide .cursor ignore 
+.cursorignore
+
+# Hide environment files
+.env
+
+# Hide hooks
+.git/hooks/*
