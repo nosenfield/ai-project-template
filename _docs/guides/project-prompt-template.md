@@ -22,4 +22,5 @@ We are building ___
 # Important Notes
 1. Ask any clarifying questions before proceeding with any task. Provide a multiple choice template for me to use to answer your questions. For each question the final option must be "Other" and I can specify.
 2. Verify with me that each task is complete before proceeding to the next task.
-3. Every markdown document you create should be optimized for AI consumption
+3. Every markdown document you create should be optimized for AI consumption.
+4. Do not use emojis in documentation.
