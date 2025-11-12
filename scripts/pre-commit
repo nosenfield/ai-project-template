@@ -9,6 +9,154 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# ============================================================================
+# AUTO_ACCEPT VALIDATION & LOGGING
+# ============================================================================
+
+VIOLATION_LOG="_logs/commit-violations.log"
+SESSION_FILE=".git/hooks/commit-session.json"
+
+# Ensure logs directory exists
+mkdir -p _logs
+
+# Fast hash calculation using git object IDs
+calculate_staged_hash() {
+    git diff --cached --name-only --diff-filter=d | \
+    while read file; do
+        git ls-files -s "$file" 2>/dev/null | awk '{print $2, $4}'
+    done | shasum -a 256 | cut -d' ' -f1
+}
+
+count_staged_files() {
+    git diff --cached --name-only --diff-filter=d | wc -l | tr -d ' '
+}
+
+# Check if AUTO_ACCEPT is being used
+if [ "$AUTO_ACCEPT" = "true" ]; then
+    # Calculate current content hash
+    CURRENT_HASH=$(calculate_staged_hash)
+    CURRENT_FILE_COUNT=$(count_staged_files)
+
+    # Read previous session (if exists)
+    if [ -f "$SESSION_FILE" ]; then
+        if command -v jq &> /dev/null; then
+            PREVIOUS_HASH=$(jq -r '.approved_hash // "NONE"' "$SESSION_FILE" 2>/dev/null || echo "NONE")
+            PREVIOUS_STATUS=$(jq -r '.status // "NONE"' "$SESSION_FILE" 2>/dev/null || echo "NONE")
+            PREVIOUS_FILE_COUNT=$(jq -r '.file_count // 0' "$SESSION_FILE" 2>/dev/null || echo 0)
+            SESSION_ID=$(jq -r '.session_id // ""' "$SESSION_FILE" 2>/dev/null)
+        else
+            PREVIOUS_HASH=$(grep -oP '"approved_hash":\s*"\K[^"]+' "$SESSION_FILE" 2>/dev/null || echo "NONE")
+            PREVIOUS_STATUS=$(grep -oP '"status":\s*"\K[^"]+' "$SESSION_FILE" 2>/dev/null || echo "NONE")
+            PREVIOUS_FILE_COUNT=$(grep -oP '"file_count":\s*\K\d+' "$SESSION_FILE" 2>/dev/null || echo 0)
+            SESSION_ID=$(grep -oP '"session_id":\s*"\K[^"]+' "$SESSION_FILE" 2>/dev/null)
+        fi
+        IS_RETRY="true"
+    else
+        PREVIOUS_HASH="NONE"
+        PREVIOUS_STATUS="NONE"
+        PREVIOUS_FILE_COUNT=0
+        SESSION_ID="NEW_SESSION"
+        IS_RETRY="false"
+    fi
+
+    # Extract task ID from commit message
+    COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
+    if [ -f "$COMMIT_MSG_FILE" ]; then
+        TASK_ID=$(grep -oP 'Task:\s*\K[\d.]+' "$COMMIT_MSG_FILE" 2>/dev/null || echo "NONE")
+        COMMIT_MSG_PREVIEW=$(head -n 1 "$COMMIT_MSG_FILE" | cut -c1-60)
+    else
+        TASK_ID="NONE"
+        COMMIT_MSG_PREVIEW="<no message>"
+    fi
+
+    # Detect violations
+    VIOLATION="NONE"
+    VIOLATION_DETAIL=""
+
+    # Violation 1: AUTO_ACCEPT on first attempt (no previous session)
+    if [ "$IS_RETRY" = "false" ]; then
+        VIOLATION="AUTO_ACCEPT_ON_FIRST_ATTEMPT"
+        VIOLATION_DETAIL="AUTO_ACCEPT=true used on first commit attempt without prior approval"
+
+    # Violation 2: AUTO_ACCEPT without approval
+    elif [ "$PREVIOUS_STATUS" != "APPROVED" ]; then
+        VIOLATION="AUTO_ACCEPT_WITHOUT_APPROVAL"
+        VIOLATION_DETAIL="AUTO_ACCEPT=true used but previous status was: $PREVIOUS_STATUS"
+
+    # Violation 3: AUTO_ACCEPT with modified content (hash mismatch)
+    elif [ "$CURRENT_HASH" != "$PREVIOUS_HASH" ]; then
+        VIOLATION="AUTO_ACCEPT_WITH_MODIFIED_CONTENT"
+        VIOLATION_DETAIL="Content changed since approval (hash mismatch)"
+
+    # Violation 4: AUTO_ACCEPT with file count mismatch
+    elif [ "$CURRENT_FILE_COUNT" != "$PREVIOUS_FILE_COUNT" ]; then
+        VIOLATION="AUTO_ACCEPT_FILE_COUNT_MISMATCH"
+        VIOLATION_DETAIL="File count changed: $PREVIOUS_FILE_COUNT → $CURRENT_FILE_COUNT"
+    fi
+
+    # If violation detected, log and warn agent
+    if [ "$VIOLATION" != "NONE" ]; then
+        # Write to human-readable log
+        {
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "COMMIT VIOLATION DETECTED"
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "Timestamp:       $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "Violation Type:  $VIOLATION"
+            echo "Task ID:         $TASK_ID"
+            echo "Session ID:      $SESSION_ID"
+            echo "Commit Message:  $COMMIT_MSG_PREVIEW"
+            echo ""
+            echo "Details:"
+            echo "  $VIOLATION_DETAIL"
+            echo ""
+            echo "Context:"
+            echo "  Is Retry:         $IS_RETRY"
+            echo "  File Count:       $CURRENT_FILE_COUNT (Previous: $PREVIOUS_FILE_COUNT)"
+            echo "  Current Hash:     ${CURRENT_HASH:0:16}..."
+            echo "  Previous Hash:    ${PREVIOUS_HASH:0:16}..."
+            echo "  Previous Status:  $PREVIOUS_STATUS"
+            echo ""
+            echo "═══════════════════════════════════════════════════════════════"
+            echo ""
+        } >> "$VIOLATION_LOG"
+
+        # Display warning to agent
+        echo -e "${RED}⚠️  AUTO_ACCEPT VIOLATION DETECTED${NC}"
+        echo ""
+        echo -e "${YELLOW}Violation: $VIOLATION${NC}"
+        echo "Details: $VIOLATION_DETAIL"
+        echo ""
+        echo "This attempt has been logged to: $VIOLATION_LOG"
+        echo ""
+        echo -e "${BLUE}📋 ACTION REQUIRED:${NC}"
+        echo "Retry the commit WITHOUT AUTO_ACCEPT=true:"
+        echo ""
+        echo -e "  ${GREEN}git commit -m \"$COMMIT_MSG_PREVIEW...\"${NC}"
+        echo ""
+        echo "The commit will go through Claude code review, and you can use"
+        echo "AUTO_ACCEPT=true after receiving approval."
+        echo ""
+
+        # Block commit
+        exit 1
+    fi
+
+    # Valid AUTO_ACCEPT: Allow commit to proceed
+    echo -e "${GREEN}✓ AUTO_ACCEPT validated (content matches approved version)${NC}"
+    echo ""
+
+    # Clean up session file (commit successful)
+    rm -f "$SESSION_FILE"
+
+    # Allow commit
+    exit 0
+fi
+
+# ============================================================================
+# NORMAL CLAUDE CODE REVIEW (no AUTO_ACCEPT)
+# ============================================================================
+
 echo -e "${BLUE}🔍 Running Claude Code review on staged files...${NC}\n"
 
 # Get list of staged files (excluding deleted files)
@@ -126,13 +274,67 @@ $STAGED_FILES
 
 # Run Claude Code in print mode for non-interactive review
 echo -e "${BLUE}Generating code review...${NC}\n"
-claude --print "$PROMPT" 2>/dev/null
+CLAUDE_OUTPUT=$(claude --print "$PROMPT" 2>/dev/null)
+echo "$CLAUDE_OUTPUT"
 
 CLAUDE_EXIT_CODE=$?
 
 if [ $CLAUDE_EXIT_CODE -ne 0 ]; then
     echo -e "\n${YELLOW}⚠️  Claude Code review failed or was skipped.${NC}"
 fi
+
+# ============================================================================
+# SAVE SESSION STATE (for AUTO_ACCEPT validation on retry)
+# ============================================================================
+
+# Calculate content hash and file count for this commit attempt
+CURRENT_HASH=$(calculate_staged_hash)
+CURRENT_FILE_COUNT=$(count_staged_files)
+
+# Generate session ID
+if [ ! -f "$SESSION_FILE" ]; then
+    SESSION_ID="session-$(date +%s)-$$"
+else
+    # Reuse existing session ID if available
+    if command -v jq &> /dev/null; then
+        SESSION_ID=$(jq -r '.session_id // ""' "$SESSION_FILE" 2>/dev/null)
+    else
+        SESSION_ID=$(grep -oP '"session_id":\s*"\K[^"]+' "$SESSION_FILE" 2>/dev/null)
+    fi
+    [ -z "$SESSION_ID" ] && SESSION_ID="session-$(date +%s)-$$"
+fi
+
+# Parse Claude's response for approval status
+if echo "$CLAUDE_OUTPUT" | grep -q "Status.*APPROVED"; then
+    CLAUDE_STATUS="APPROVED"
+elif echo "$CLAUDE_OUTPUT" | grep -q "Status.*ISSUES"; then
+    CLAUDE_STATUS="ISSUES_FOUND"
+else
+    # Legacy format fallback
+    if echo "$CLAUDE_OUTPUT" | grep -iEq "APPROVED|Ready to commit|No issues found|LGTM|Looks good"; then
+        CLAUDE_STATUS="APPROVED"
+    else
+        CLAUDE_STATUS="UNKNOWN"
+    fi
+fi
+
+# Get list of staged files
+STAGED_FILES_LIST=$(git diff --cached --name-only --diff-filter=d)
+
+# Save session state to JSON file
+cat > "$SESSION_FILE" <<EOF
+{
+  "session_id": "$SESSION_ID",
+  "task_id": "$TASK_ID",
+  "timestamp": "$(date '+%Y-%m-%d %H:%M:%S')",
+  "status": "$CLAUDE_STATUS",
+  "approved_hash": "$CURRENT_HASH",
+  "file_count": $CURRENT_FILE_COUNT,
+  "staged_files": [
+$(echo "$STAGED_FILES_LIST" | sed 's/^/    "/;s/$/"/' | paste -sd ',' -)
+  ]
+}
+EOF
 
 # Check for non-interactive mode (CI or explicit flag)
 if [ "$AUTO_ACCEPT" = "true" ]; then
