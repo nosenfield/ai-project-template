@@ -383,6 +383,80 @@ $ AUTO_ACCEPT=true git commit -m "feat: implement user authentication"
 # Bypasses interactive prompt → Commit succeeds ✅
 ```
 
+### Handling AUTO_ACCEPT Violations
+
+If the agent incorrectly uses `AUTO_ACCEPT=true`, the pre-commit hook will:
+1. **Detect the violation** (wrong usage scenario)
+2. **Log it** to `_logs/commit-violations.log` for human review
+3. **Block the commit** with clear instructions
+4. **Guide the agent** to retry without AUTO_ACCEPT
+
+**Violation Types:**
+- `AUTO_ACCEPT_ON_FIRST_ATTEMPT`: Used on first commit without prior approval
+- `AUTO_ACCEPT_WITHOUT_APPROVAL`: Used when previous status was not APPROVED
+- `AUTO_ACCEPT_WITH_MODIFIED_CONTENT`: Used after changing files post-approval
+- `AUTO_ACCEPT_FILE_COUNT_MISMATCH`: Used after adding/removing files post-approval
+
+**Agent Response to Violation:**
+
+When commit fails with "AUTO_ACCEPT VIOLATION DETECTED":
+
+```bash
+# Commit attempt failed
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+⚠️  AUTO_ACCEPT VIOLATION DETECTED
+
+Violation: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+Details: AUTO_ACCEPT=true used on first commit attempt without prior approval
+
+This attempt has been logged to: _logs/commit-violations.log
+
+📋 ACTION REQUIRED:
+Retry the commit WITHOUT AUTO_ACCEPT=true:
+
+  git commit -m "feat: add auth"
+
+# Exit code: 1 (failure)
+```
+
+**Agent MUST:**
+1. **Recognize** the violation (check exit code and output)
+2. **Retry** WITHOUT `AUTO_ACCEPT=true`
+3. **Go through** normal Claude review cycle
+4. **Use** `AUTO_ACCEPT=true` only after receiving approval
+
+**Example Self-Correction:**
+
+```bash
+# Attempt 1 (WRONG)
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# ❌ Violation detected
+
+# Attempt 2 (CORRECT - retry without AUTO_ACCEPT)
+$ git commit -m "feat: add auth"
+# Claude reviews → APPROVED
+
+# Attempt 3 (NOW VALID)
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# ✅ Succeeds
+```
+
+**Viewing Violations:**
+
+To see logged violations:
+```bash
+cat _logs/commit-violations.log
+
+# Or use the helper script
+./_logs/show-violations.sh
+```
+
+**Important:**
+- Violations are **logged** (not silently ignored)
+- Violations **block the commit** (prevent bad behavior)
+- Violations **guide the agent** (provide clear next steps)
+- Violations are **human-auditable** (track patterns over time)
+
 ---
 
 ## Context Window Management
@@ -594,6 +668,30 @@ Before proceeding to next task in autonomous mode, verify:
 - [ ] Task tracker updated
 - [ ] Git working directory clean
 - [ ] No blocking errors in logs
+
+### ⚠️ CRITICAL: Commit Approval State Reset
+
+**Each new task starts with NO approval.**
+
+When moving from one task to the next:
+- ❌ **NEVER** use `AUTO_ACCEPT=true` on the first commit attempt of a new task
+- ❌ **NEVER** carry forward approval from previous task
+- ✅ **ALWAYS** go through full Claude review cycle for the first commit of each task
+- ✅ **ONLY** use `AUTO_ACCEPT=true` after receiving approval for THIS specific task's commit
+
+**Correct Flow Between Tasks:**
+```bash
+# Task 1: Completed with AUTO_ACCEPT=true after approval ✅
+
+# Moving to Task 2...
+# Approval state: RESET → NO APPROVAL
+
+# Task 2: First commit attempt
+git commit -m "feat: task 2"  # ✅ CORRECT - goes through Claude review
+
+# DO NOT DO THIS:
+AUTO_ACCEPT=true git commit -m "feat: task 2"  # ❌ WRONG - skips required review
+```
 
 If ANY validation fails:
 → HALT execution

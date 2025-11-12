@@ -38,6 +38,8 @@ coverage/
 # Logs
 logs/
 *.log
+_logs/*
+!_logs/.gitkeep
 
 # Temporary files
 tmp/
