@@ -98,12 +98,69 @@ Follow the complete one-shot process for this task:
    - Mark task complete
    - Update progress percentages
 
-6. **Commit Changes**
-   - Safety checks (no secrets, no large files)
-   - Stage files explicitly by name (NEVER use `git add .` or `git add -A`)
-   - Use conventional commit message format
-   - NEVER use `--no-verify` (must run pre-commit hooks)
-   - Verify commit created with git log
+6. **Commit via Approval Workflow**
+
+   Follow the complete commit approval workflow as defined in @autonomous-execution.mdc § "Commit Approval Workflow".
+
+   **Safety Checks:**
+   - No secrets or credentials (.env, keys, etc.)
+   - No large files (> 10MB unless intentional)
+   - No `node_modules/` or `__pycache__/`
+
+   **Stage Files Explicitly:**
+   ```bash
+   git status --short
+   git add path/to/file1.ts path/to/file2.ts path/to/test.test.ts
+   ```
+   **FORBIDDEN**: NEVER use `git add .` or `git add -A`
+
+   **Create Commit:**
+   ```bash
+   git commit -m "$(cat <<'EOF'
+   <type>: <short description>
+
+   <detailed description>
+
+   - Key change 1
+   - Key change 2
+
+   Task: [task-id] - [task name]
+   EOF
+   )"
+   ```
+
+   **Handle Claude Review Iterations:**
+
+   The pre-commit hook will trigger Claude review. The agent must:
+   1. Analyze Claude's review feedback (see standardized format in @autonomous-execution.mdc)
+   2. Decide action based on feedback:
+      - **Approval + no issues**: Use `AUTO_ACCEPT=true` immediately
+      - **Approval + non-blocking recommendations**: Decide if significant → implement or defer
+      - **Issues found**: Fix issues → request new approval
+   3. Iterate until approval received
+   4. Finalize with `AUTO_ACCEPT=true` after approval with no changes
+
+   **Example:**
+   ```bash
+   # First attempt
+   git commit -m "feat: implement feature X"
+   # Claude reviews → suggests improvements
+
+   # Fix and retry
+   git commit -m "feat: implement feature X"
+   # Claude reviews → APPROVED
+
+   # Final commit with AUTO_ACCEPT
+   AUTO_ACCEPT=true git commit -m "feat: implement feature X"
+   # ✅ Commit succeeds
+   ```
+
+   **FORBIDDEN**: NEVER use `--no-verify` or `-n` flags
+
+   **Verify Commit:**
+   ```bash
+   git log --oneline -1
+   ```
 
 ### 3. Post-Task Reporting
 
@@ -424,10 +481,13 @@ Add all test coverage for a specific module.
 3. Combine multiple tasks in one commit
 4. Use of `git add .` or `git add -A`
 5. Use of `--no-verify` or `-n`
-6. Continue if dependencies fail
-7. Auto-push to remote
-8. Ignore ambiguous requirements
-9. Modify files outside task scope
+6. Use `AUTO_ACCEPT=true` without approval
+7. Use `AUTO_ACCEPT=true` after making changes post-approval
+8. Use `AUTO_ACCEPT=true` on first commit of NEW task (carry forward approval from previous task)
+9. Continue if dependencies fail
+10. Auto-push to remote
+11. Ignore ambiguous requirements
+12. Modify files outside task scope
 
 ---
 
