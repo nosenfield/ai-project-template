@@ -47,7 +47,7 @@ You are starting a new development session.
 - [Key decision 2]
 
 ## Ready to Proceed
-✅ Context loaded. Use `/start-task [id]` to begin a task, or ask questions about the project.
+✅ Context loaded. Use `/plan [id]` to begin a task, or ask questions about the project.
 ```
 
 ## Important Notes

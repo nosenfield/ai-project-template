@@ -2,14 +2,27 @@
 
 You are helping the user create a git commit with proper staging and commit message formatting. This command requires approval from pre-commit hooks before finalizing the commit.
 
+## Relationship to Autonomous Mode
+
+This command documents the **manual commit workflow**. When executing in autonomous mode (via `/one-shot` or `/batch`), the agent follows the same workflow but handles Claude review iterations automatically. See @autonomous-execution.mdc for autonomous behavior.
+
+**Key differences:**
+- **Manual mode** (this command): User reviews Claude feedback and decides on changes
+- **Autonomous mode**: Agent analyzes Claude feedback and decides automatically (following smart decision rules)
+
+For the complete commit approval workflow including AUTO_ACCEPT usage, see @autonomous-execution.mdc § "Commit Approval Workflow".
+
+---
+
 ## Important Rules
 
 1. **NEVER use `git add .` or `git add -A`** - Always stage files with explicit paths
-2. **Always list files explicitly** - Show the user what will be committed
-3. **Use a single `git add` command** - List all files in one command, not multiple individual commands
-4. **Create meaningful commit messages** - Follow conventional commit format
-5. **ALWAYS run pre-commit hooks** - Never use `--no-verify` or `-n`
-6. **Handle hook feedback** - If hooks fail, fix issues or provide reasoning
+2. **NEVER use `git commit -n` or `git commit --no-verify`** - Always run the pre-commit hook.
+3. **NEVER commit files you did not edit** - Only commit files you generated or modified.
+4. **Always list files explicitly** - Show the user what will be committed
+5. **Use a single `git add` command** - List all files in one command, not multiple individual commands
+6. **Create meaningful commit messages** - Follow conventional commit format. Keep it succinct and clear.
+7. **Handle hook feedback** - If hooks fail, fix issues or provide reasoning
 
 ---
 
@@ -147,12 +160,12 @@ The hooks will check:
 
 After attempting commit, analyze the result:
 
-#### Case A: Hooks Pass - Commit Successful ✅
+#### Case A: Hooks Pass - Commit Approved ✅
 
-If hooks pass and commit succeeds:
+If hooks pass and commit is approved:
 
 ```
-✅ COMMIT SUCCESSFUL
+✅ COMMIT APPROVED
 
 Pre-commit hooks: PASSED
 

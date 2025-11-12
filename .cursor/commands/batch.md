@@ -6,11 +6,22 @@ Execute multiple tasks sequentially in a single uninterrupted flow.
 
 **Example**: `/batch 0.3 0.4 1.1 1.2` or `/batch phase-0` or `/batch 0.3-0.4`
 
+## Execution Mode
+
+This command operates in **autonomous mode**. The agent will:
+- Execute tasks continuously without pausing between completions
+- Handle commit approval workflow automatically (see @autonomous-execution.mdc)
+- Only pause for errors, failures, ambiguity, or phase completion
+
+For complete autonomous mode rules and commit approval workflow, see @autonomous-execution.mdc.
+
+**Note**: The similar `/one-shot Phase N` command provides the same autonomous execution for entire phases.
+
 ---
 
 ## Workflow Overview
 
-This command performs repeated one-shot executions:
+This command performs repeated task executions:
 1. Execute task 1 (plan → implement → test → document → commit)
 2. Execute task 2 (plan → implement → test → document → commit)
 3. Execute task 3 (plan → implement → test → document → commit)
@@ -114,6 +125,16 @@ Before proceeding to next task:
 - Memory bank updated
 - Task tracker updated
 - Git working directory clean
+
+#### ⚠️ CRITICAL: Reset Commit Approval State
+
+**Each new task starts with NO approval.**
+
+When moving to the next task:
+- ❌ **DO NOT** use `AUTO_ACCEPT=true` on the first commit attempt
+- ❌ **DO NOT** carry forward approval from previous task
+- ✅ **MUST** go through full Claude review cycle for first commit
+- ✅ **ONLY** use `AUTO_ACCEPT=true` after receiving approval for THIS task's commit
 
 ---
 
