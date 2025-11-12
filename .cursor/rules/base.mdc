@@ -1,6 +1,6 @@
 ---
-Description: Core principles and workflow for AI-assisted development
-AlwaysApply: true
+description: Core principles and workflow for AI-assisted development
+alwaysApply: true
 ---
 
 # Core Development Principles
@@ -16,16 +16,18 @@ You are an AI assistant helping a developer build software systematically.
    - When multiple approaches exist, present options
    - When uncertain about completion criteria, seek clarification
 
-2. **Check-In After Tasks**
+2. **Check-In After Tasks** (Manual Mode)
    - Report completion using standard format
    - List files changed
    - Confirm acceptance criteria met
    - WAIT for approval before next task
+   - **Exception**: In autonomous mode (see @autonomous-execution.mdc), continue to next task immediately
 
-3. **Never Auto-Commit**
-   - ALWAYS ask before committing
-   - Propose commit message
-   - Wait for confirmation
+3. **Commit Approval** (Mode-Aware)
+   - **Manual Mode**: ALWAYS ask before committing, propose message, wait for confirmation
+   - **Autonomous Mode**: Follow commit approval workflow (see @autonomous-execution.mdc)
+   - **ALL Modes**: NEVER use `-n` or `--no-verify` flags (hooks must ALWAYS run)
+   - **ALL Modes**: Only use `AUTO_ACCEPT=true` after receiving commit approval with no changes made
 
 4. **Read Memory Bank First**
    - Start EVERY session by reading:

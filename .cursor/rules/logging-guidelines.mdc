@@ -1,5 +1,7 @@
-Description: Structured logging standards
-Globs: **/*.{ts,tsx,js,jsx}
+---
+description: Structured logging standards
+globs: **/*.{ts,tsx,js,jsx}
+---
 
 # Logging Guidelines
 

@@ -1,5 +1,7 @@
-Description: Frontend component standards (customize for your stack)
-Globs: src/components/**/*.{tsx,jsx}
+---
+description: Frontend component standards (customize for your stack)
+globs: src/components/**/*.{tsx,jsx}
+---
 
 # Component Standards
 

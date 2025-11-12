@@ -1,5 +1,7 @@
-Description: Testing requirements and patterns
-Globs: **/*.test.{ts,tsx,js,jsx}
+---
+description: Testing requirements and patterns
+globs: **/*.test.{ts,tsx,js,jsx}
+---
 
 # Testing Standards
 

@@ -1,5 +1,7 @@
-Description: Backend API standards (customize for your stack)
-Globs: src/api/**/*.{ts,js}
+---
+description: Backend API standards (customize for your stack)
+globs: src/api/**/*.{ts,js}
+---
 
 # API Standards
 

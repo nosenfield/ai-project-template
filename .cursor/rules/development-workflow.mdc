@@ -1,5 +1,7 @@
-Description: Standard development workflow and task execution
-Globs: **/*
+---
+description: Standard development workflow and task execution
+alwaysApply: true
+---
 
 # Development Workflow
 
@@ -24,6 +26,17 @@ For complete Memory Bank procedures, see @memory-bank-management.mdc
 **Integration with Workflow:**
 Memory Bank updates are part of task completion (Step 4 - Report Completion).
 Don't mark task complete without updating Memory Bank.
+
+## Execution Modes
+
+This project supports two execution modes:
+
+- **Manual Mode** (default): Step-by-step with user approval at each stage
+- **Autonomous Mode**: Continuous execution for batch tasks (see @autonomous-execution.mdc)
+
+The workflows below apply to **Manual Mode**. For autonomous mode, see @autonomous-execution.mdc.
+
+---
 
 ## Task Execution Flow
 
@@ -72,10 +85,13 @@ Ready for Next: Yes/No
 Blockers: [any issues]
 ```
 
-### 5. Wait for Approval
+### 5. Wait for Approval (Manual Mode)
 ```
 Do NOT proceed to next task automatically.
 Wait for explicit approval.
+
+Exception: In autonomous mode (@autonomous-execution.mdc),
+proceed immediately to next task after successful commit.
 ```
 
 ## Context Summary Creation

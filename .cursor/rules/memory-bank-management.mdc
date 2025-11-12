@@ -109,6 +109,28 @@ progress.md
 3. Reference other files as needed for context
 ```
 
+### Context Window Monitoring (Autonomous Mode)
+
+When executing in autonomous mode (@autonomous-execution.mdc), monitor token usage:
+
+**At 90% context capacity:**
+1. Pause current task (finish current operation)
+2. Update memory bank with all recent work
+3. Compact context using progressive reduction (see below)
+4. Resume current task
+
+**Progressive Context Reduction Priority:**
+1. Remove code snippets from earlier tasks
+2. Summarize old task details (keep task ID, status, commit)
+3. Remove conditional context (old commits, optional docs)
+4. Summarize older memory bank entries
+
+**Always Preserve:**
+- activeContext.md (current state)
+- Current task full details
+- Architecture.md relevant sections
+- Recent changes (last 3 entries)
+
 ### After Completing a Task
 ```
 Update in this order:
@@ -145,6 +167,17 @@ This is a FULL REVIEW command. You must:
 5. Document any recent decisions not yet captured
 6. Clarify next steps
 7. Report what was updated and why
+```
+
+### After Phase Completion (Autonomous Mode)
+```
+When all tasks in a phase are complete:
+
+1. Full memory bank update (all files)
+2. Update task tracker with 100% completion
+3. Generate phase summary (see @autonomous-execution.mdc)
+4. Mark phase complete in progress.md
+5. Report completion to user
 ```
 
 ## Update Triggers
