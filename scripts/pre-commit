@@ -23,31 +23,67 @@ echo -e "${BLUE}Staged files:${NC}"
 echo "$STAGED_FILES" | sed 's/^/  - /'
 echo ""
 
-# Context files to read before review
-CONTEXT_FILES=(
-    "./memory-bank/activeContext.md"
-    "./memory-bank/progress.md"
-    "./memory-bank/projectbrief.md"
-    "./memory-bank/systemPatterns.md"
+# Essential context files (always include)
+ESSENTIAL_CONTEXT=(
     "./_docs/architecture.md"
-    "./_docs/task-list.md"
     "./_docs/best-practices.md"
+    "./.cursor/rules/base.mdc"
 )
 
-# Build context section
-CONTEXT_PROMPT="First, read these context files to understand the project:
-"
-for file in "${CONTEXT_FILES[@]}"; do
+# Conditional context files (include if relevant)
+CONDITIONAL_CONTEXT=(
+    "./memory-bank/activeContext.md"
+    "./memory-bank/systemPatterns.md"
+)
+
+# Build essential context section
+CONTEXT_PROMPT="First, read these essential context files to understand the project:
+
+**Essential Context (always read):**"
+for file in "${ESSENTIAL_CONTEXT[@]}"; do
     if [ -f "$file" ]; then
         CONTEXT_PROMPT="${CONTEXT_PROMPT}
 - $file"
     fi
 done
 
-# Create a prompt for Claude
-PROMPT="${CONTEXT_PROMPT}
+# Add conditional context
+CONTEXT_PROMPT="${CONTEXT_PROMPT}
 
-After reading the context files above, please review the following staged files for this commit. Check for:
+**Conditional Context (read if relevant to changes):**"
+for file in "${CONDITIONAL_CONTEXT[@]}"; do
+    if [ -f "$file" ]; then
+        CONTEXT_PROMPT="${CONTEXT_PROMPT}
+- $file (read if changes involve current work or architecture)"
+    fi
+done
+
+# Extract task ID from commit message (if present)
+COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
+TASK_CONTEXT=""
+if [ -f "$COMMIT_MSG_FILE" ]; then
+    TASK_ID=$(grep -oP 'Task:\s*\K[\d.]+' "$COMMIT_MSG_FILE" 2>/dev/null || echo "")
+    if [ -n "$TASK_ID" ]; then
+        TASK_CONTEXT="
+
+**Task Context:**
+This commit relates to Task $TASK_ID. Consider the task requirements when reviewing."
+    fi
+fi
+
+# Create a prompt for Claude with structured response format
+PROMPT="${CONTEXT_PROMPT}${TASK_CONTEXT}
+
+---
+
+## CODE REVIEW REQUEST
+
+Please review the following staged files for this commit.
+
+**Staged files:**
+$STAGED_FILES
+
+**Review criteria:**
 - Code quality and best practices
 - Potential bugs or issues
 - Security vulnerabilities
@@ -55,10 +91,38 @@ After reading the context files above, please review the following staged files 
 - Code style consistency
 - Alignment with project architecture and best practices
 
-Staged files:
-$STAGED_FILES
+**IMPORTANT: Provide your response in the following structured format:**
 
-Please provide a concise review with any critical issues that should be addressed before committing."
+\`\`\`markdown
+## CODE REVIEW RESULT
+
+**Status**: [APPROVED / ISSUES FOUND]
+
+### Critical Issues
+[If none, write \"None\"]
+[If found, list each issue with:
+ - Severity: [CRITICAL/HIGH/MEDIUM]
+ - Location: [file:line]
+ - Description: [what's wrong]
+ - Fix: [how to fix]]
+
+### Non-Blocking Recommendations
+[If none, write \"None\"]
+[If found, list each recommendation with:
+ - Type: [Quality/Performance/Style/Documentation]
+ - Suggestion: [what to improve]
+ - Rationale: [why this would help]]
+
+### Decision Summary
+[APPROVED] - Ready to commit [with/without recommendations]
+[ISSUES FOUND] - Must fix critical issues before commit
+\`\`\`
+
+**Guidelines:**
+- Be concise but specific
+- Focus on issues that matter (not nitpicks)
+- Provide actionable feedback
+- Consider the task context if provided"
 
 # Run Claude Code in print mode for non-interactive review
 echo -e "${BLUE}Generating code review...${NC}\n"
