@@ -16,8 +16,9 @@ We are building ___
 2. Raise any concerns or technical hurdles.
 3. Create _docs/architecture.md document detailing the tech stack and directory structure for our project.
 4. Create _docs/task-list.md for building our project MVP from 0 to 1.
-    a. Chunk the task list into logical separations and save each chunk in _docs/task-list/. Chunks should reference each-other as needed
-    b. Compact the original task-list.md to reference the chunks.
+    1. Create the task-list.md as a single file.
+    2. Chunk the task list into logical, pragmatic separations and save each chunk in _docs/task-list/. Chunks should cross-reference dependencies and related chunks as needed.
+    3. Compact the original task-list.md to cross-reference the chunks.
 5. Create _docs/task-tracker.md based on our _docs/task-list.md. Use _docs/guides/task-tracker-template.md.
 6. Create _docs/best-practices.md for building modular, scaleable projects with our specific tech stack.
 7. Create a _docs/required-reading list as needed for developers to better understand any nuances of our project and the specific tools & technologies involved.
