@@ -26,6 +26,7 @@ cp -r ../ai-project-template/_docs .
 cp -r ../ai-project-template/tests .
 cp -r ../ai-project-template/scripts .
 cp ../ai-project-template/.gitignore .
+cp ../ai-project-template/.cursorignore .
 
 echo "✏️  Customizing templates..."
 

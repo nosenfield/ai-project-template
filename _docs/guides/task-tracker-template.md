@@ -13,6 +13,7 @@ Simple progress tracker for [Project Name]. Reference: [task-list.md](task-list.
 - [>] In Progress
 - [x] Completed
 - [~] Skipped
+- [!] Failed
 
 ---
 

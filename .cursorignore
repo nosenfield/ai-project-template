@@ -5,7 +5,10 @@
 .env
 
 # Hide hooks
-.git/hooks/*
+.git/hooks
 
 # Hide logs
-_logs/*
+_logs
+
+# Hide backups
+_docs/_backups
