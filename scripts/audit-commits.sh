@@ -27,7 +27,10 @@ if [ -f "$BYPASS_LOG" ]; then
     BYPASS_COUNT=$(grep -c "PRE-COMMIT HOOK BYPASSED" "$BYPASS_LOG")
 
     # Count authorized bypasses (with [skip-review] marker)
-    AUTHORIZED_COUNT=$(grep -c "\[skip-review\]" "$BYPASS_LOG" 2>/dev/null || echo 0)
+    AUTHORIZED_COUNT=$(grep -c "skip-review" "$BYPASS_LOG" 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        AUTHORIZED_COUNT=0
+    fi
 
     # Calculate violations (bypasses without authorization)
     VIOLATION_COUNT=$((BYPASS_COUNT - AUTHORIZED_COUNT))
@@ -44,12 +47,25 @@ if [ -f "$BYPASS_LOG" ]; then
 
         # Parse log and show violations only
         awk '
-        /^═+$/ { section++; in_section=1; buffer=""; next }
+        BEGIN { in_section=0; buffer=""; has_marker=0 }
+        /═════════════════════════════════════════════════════════════/ {
+            if (in_section && buffer != "" && !has_marker) {
+                print buffer
+            }
+            in_section=1
+            buffer=""
+            has_marker=0
+            next
+        }
         in_section {
             buffer = buffer $0 "\n"
-            if ($0 ~ /Commit Message:/ && $0 !~ /\[skip-review\]/) {
+            if ($0 ~ /skip-review/) {
+                has_marker=1
+            }
+        }
+        END {
+            if (in_section && buffer != "" && !has_marker) {
                 print buffer
-                in_violation=1
             }
         }
         ' "$BYPASS_LOG"
@@ -87,7 +103,10 @@ if [ -f "$ALL_COMMITS_LOG" ]; then
     echo ""
 
     TOTAL_COMMITS=$(wc -l < "$ALL_COMMITS_LOG" | tr -d ' ')
-    BYPASSED=$(grep -c "BYPASSED PRE-COMMIT" "$ALL_COMMITS_LOG" 2>/dev/null || echo 0)
+    BYPASSED=$(grep -c "BYPASSED PRE-COMMIT" "$ALL_COMMITS_LOG" 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        BYPASSED=0
+    fi
     NORMAL=$((TOTAL_COMMITS - BYPASSED))
 
     echo -e "${BLUE}Total commits logged:${NC}       $TOTAL_COMMITS"

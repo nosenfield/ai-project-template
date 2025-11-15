@@ -21,8 +21,12 @@ mkdir -p _logs
 
 # Fast hash calculation using git object IDs
 calculate_staged_hash() {
-    git diff --cached --name-only --diff-filter=d | \
-    while read file; do
+    local files=$(git diff --cached --name-only --diff-filter=d)
+    if [ -z "$files" ]; then
+        echo "NO_STAGED_FILES"
+        return
+    fi
+    echo "$files" | while IFS= read -r file; do
         git ls-files -s "$file" 2>/dev/null | awk '{print $2, $4}'
     done | shasum -a 256 | cut -d' ' -f1
 }
@@ -278,7 +282,15 @@ check_cache() {
     # Check if cache is expired
     if [ "$cached_timestamp" != "0" ]; then
         local now=$(date +%s)
-        local cached_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$cached_timestamp" +%s 2>/dev/null || echo "0")
+        # Platform-specific date parsing
+        local cached_epoch
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            cached_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${cached_timestamp%%Z}" +%s 2>/dev/null || echo "0")
+        else
+            # Linux
+            cached_epoch=$(date -d "$cached_timestamp" +%s 2>/dev/null || echo "0")
+        fi
         local age_days=$(( (now - cached_epoch) / 86400 ))
 
         if [ $age_days -gt $CACHE_EXPIRY_DAYS ]; then

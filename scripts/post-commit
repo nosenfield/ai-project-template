@@ -17,12 +17,28 @@ mkdir -p _logs
 # GATHER COMMIT INFORMATION
 # ============================================================================
 
-COMMIT_HASH=$(git rev-parse HEAD)
-COMMIT_MSG=$(git log -1 --pretty=%s)
-COMMIT_AUTHOR=$(git log -1 --pretty=%an)
-COMMIT_EMAIL=$(git log -1 --pretty=%ae)
+COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null)
+if [ -z "$COMMIT_HASH" ]; then
+    echo "ERROR: Failed to get commit hash" >&2
+    exit 1
+fi
+
+# Validate commit hash format
+if ! echo "$COMMIT_HASH" | grep -qE '^[0-9a-f]{40}$'; then
+    echo "ERROR: Invalid commit hash: $COMMIT_HASH" >&2
+    COMMIT_HASH="<invalid-hash>"
+fi
+
+COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "<error retrieving message>")
+COMMIT_AUTHOR=$(git log -1 --pretty=%an 2>/dev/null || echo "<unknown>")
+COMMIT_EMAIL=$(git log -1 --pretty=%ae 2>/dev/null || echo "<unknown>")
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-FILES_CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | wc -l | tr -d ' ')
+FILES_CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null | wc -l | tr -d ' ')
+
+# Validate FILES_CHANGED
+if [ -z "$FILES_CHANGED" ] || [ "$FILES_CHANGED" = "0" ]; then
+    FILES_CHANGED="<error>"
+fi
 
 # ============================================================================
 # CHECK IF PRE-COMMIT HOOK RAN
