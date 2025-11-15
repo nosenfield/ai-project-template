@@ -5,7 +5,7 @@ The Memory Bank maintains project context across AI sessions.
 ## Files
 
 ### Required (Create at Project Start)
-- `projectbrief.md` - Foundation, created first
+- `projectBrief.md` - Foundation, created first
 - `productContext.md` - Why project exists
 - `systemPatterns.md` - Architecture patterns
 - `techContext.md` - Tech stack, setup
@@ -17,7 +17,7 @@ The Memory Bank maintains project context across AI sessions.
 ## File Hierarchy
 
 ```
-projectbrief.md → productContext.md → activeContext.md
+projectBrief.md → productContext.md → activeContext.md
                 → systemPatterns.md   ↗
                 → techContext.md      ↗
 

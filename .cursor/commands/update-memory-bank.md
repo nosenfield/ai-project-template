@@ -7,7 +7,7 @@ Review and update Memory Bank (comprehensive).
 ### 1. Read ALL Files
 
 **Memory Bank files to review**:
-- [ ] projectbrief.md
+- [ ] projectBrief.md
 - [ ] productContext.md
 - [ ] activeContext.md
 - [ ] systemPatterns.md

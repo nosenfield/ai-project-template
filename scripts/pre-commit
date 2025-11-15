@@ -377,7 +377,7 @@ ESSENTIAL_CONTEXT=(
     "./_docs/architecture.md"
     "./_docs/best-practices.md"
     "./.cursor/rules/base.mdc"
-    "./memory-bank/projectbrief.md"
+    "./memory-bank/projectBrief.md"
 )
 
 # Conditional context files (include if relevant)

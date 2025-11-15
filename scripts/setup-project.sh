@@ -31,7 +31,7 @@ cp ../ai-project-template/.cursorignore .
 echo "✏️  Customizing templates..."
 
 # Rename template files
-mv memory-bank/projectbrief.md.template memory-bank/projectbrief.md
+mv memory-bank/projectBrief.md.template memory-bank/projectBrief.md
 mv memory-bank/productContext.md.template memory-bank/productContext.md
 mv memory-bank/activeContext.md.template memory-bank/activeContext.md
 mv memory-bank/systemPatterns.md.template memory-bank/systemPatterns.md
@@ -51,7 +51,7 @@ echo "✅ Project setup complete!"
 echo ""
 echo "Next steps:"
 echo "1. cd ../$PROJECT_NAME"
-echo "2. Fill in memory-bank/projectbrief.md"
+echo "2. Fill in memory-bank/projectBrief.md"
 echo "3. Create _docs/architecture.md"
 echo "4. Define _docs/task-list.md"
 echo "5. Add stack-specific best practices to _docs/best-practices/"

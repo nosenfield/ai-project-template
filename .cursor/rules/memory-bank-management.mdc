@@ -12,17 +12,17 @@ The Memory Bank preserves project context across AI sessions. Since AI memory re
 ## File Structure & Hierarchy
 ```
 memory-bank/
-├── projectbrief.md      # Foundation (source of truth)
-├── productContext.md    # Derives from projectbrief
-├── systemPatterns.md    # Derives from projectbrief
-├── techContext.md       # Derives from projectbrief
+├── projectBrief.md      # Foundation (source of truth)
+├── productContext.md    # Derives from projectBrief
+├── systemPatterns.md    # Derives from projectBrief
+├── techContext.md       # Derives from projectBrief
 ├── activeContext.md     # Derives from above + recent work
 └── progress.md          # Derives from activeContext
 ```
 
 **Dependency Flow:**
 ```
-projectbrief.md (create FIRST)
+projectBrief.md (create FIRST)
     ↓
 productContext.md + systemPatterns.md + techContext.md
     ↓
@@ -33,7 +33,7 @@ progress.md
 
 ## File Purposes
 
-### projectbrief.md (Foundation)
+### projectBrief.md (Foundation)
 **Created**: Once at project start
 **Updated**: Rarely (only if scope/goals change)
 **Contains**:
@@ -47,7 +47,7 @@ progress.md
 - Timeline
 
 ### productContext.md
-**Created**: After projectbrief
+**Created**: After projectBrief
 **Updated**: When UX goals or user needs change
 **Contains**:
 - Why project exists
@@ -57,7 +57,7 @@ progress.md
 - Core user flows
 
 ### systemPatterns.md
-**Created**: After projectbrief
+**Created**: After projectBrief
 **Updated**: When architecture or patterns change
 **Contains**:
 - System architecture
@@ -68,7 +68,7 @@ progress.md
 - Data flow patterns
 
 ### techContext.md
-**Created**: After projectbrief
+**Created**: After projectBrief
 **Updated**: When tech stack or setup changes
 **Contains**:
 - Technologies used (with versions)
@@ -242,7 +242,7 @@ Before finishing any session, verify:
 
 When starting a new project:
 
-1. Create projectbrief.md FIRST
+1. Create projectBrief.md FIRST
    - Fill from project description/requirements
    - Define scope clearly
    

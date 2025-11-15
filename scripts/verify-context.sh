@@ -7,7 +7,7 @@ echo ""
 
 # Required files
 REQUIRED_FILES=(
-  "memory-bank/projectbrief.md"
+  "memory-bank/projectBrief.md"
   "memory-bank/activeContext.md"
   "memory-bank/progress.md"
   "_docs/architecture.md"

@@ -27,7 +27,7 @@ cd ai-project-template
 cd ../my-new-project
 
 # Fill in project-specific details
-# 1. memory-bank/projectbrief.md (describe your project)
+# 1. memory-bank/projectBrief.md (describe your project)
 # 2. _docs/architecture.md (your system design)
 # 3. _docs/task-list.md (your tasks)
 # 4. _docs/best-practices/[stack].md (stack-specific patterns)

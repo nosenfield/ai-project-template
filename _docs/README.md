@@ -5,7 +5,7 @@
 ### New to This Project?
 
 Read in this order:
-1. [projectbrief.md](../memory-bank/projectbrief.md) - Project overview
+1. [projectBrief.md](../memory-bank/projectBrief.md) - Project overview
 2. [architecture.md](./architecture.md) - System design
 3. [task-list.md](./task-list.md) - Current tasks
 4. [guides/multi-agent-workflow.md](./guides/multi-agent-workflow.md) - Multi-agent workflows
