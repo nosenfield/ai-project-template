@@ -199,6 +199,17 @@ for file in "${ESSENTIAL_CONTEXT[@]}"; do
     fi
 done
 
+# Add instruction to follow best-practices links
+CONTEXT_PROMPT="${CONTEXT_PROMPT}
+
+**IMPORTANT - Best Practices Context:**
+After reading ./_docs/best-practices.md, if it contains relative links to chunked
+best practice documents (e.g., ./best-practices/chunk-name.md), you MUST read
+each linked file that is relevant to the technologies in the staged files.
+
+These chunked documents contain technology-specific best practices that are
+critical for reviewing the code correctly."
+
 # Add conditional context
 CONTEXT_PROMPT="${CONTEXT_PROMPT}
 
