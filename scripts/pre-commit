@@ -149,6 +149,9 @@ if [ "$AUTO_ACCEPT" = "true" ]; then
     # Clean up session file (commit successful)
     rm -f "$SESSION_FILE"
 
+    # Mark that pre-commit hook ran (for post-commit detection)
+    touch _logs/.pre-commit-ran
+
     # Allow commit
     exit 0
 fi
@@ -357,6 +360,8 @@ case "$response" in
         case "$response2" in
             [yY])
                 echo -e "${GREEN}✓ Proceeding with commit...${NC}"
+                # Mark that pre-commit hook ran (for post-commit detection)
+                touch _logs/.pre-commit-ran
                 exit 0
                 ;;
             *)
@@ -367,6 +372,8 @@ case "$response" in
         ;;
     [yY])
         echo -e "${GREEN}✓ Proceeding with commit...${NC}"
+        # Mark that pre-commit hook ran (for post-commit detection)
+        touch _logs/.pre-commit-ran
         exit 0
         ;;
     *)

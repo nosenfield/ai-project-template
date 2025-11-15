@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Post-commit hook to log all commits and detect --no-verify usage
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+LOG_FILE="_logs/all-commits.log"
+BYPASS_LOG="_logs/commit-violations.log"
+MARKER_FILE="_logs/.pre-commit-ran"
+
+# Ensure logs directory exists
+mkdir -p _logs
+
+# ============================================================================
+# GATHER COMMIT INFORMATION
+# ============================================================================
+
+COMMIT_HASH=$(git rev-parse HEAD)
+COMMIT_MSG=$(git log -1 --pretty=%s)
+COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+COMMIT_EMAIL=$(git log -1 --pretty=%ae)
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+FILES_CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | wc -l | tr -d ' ')
+
+# ============================================================================
+# CHECK IF PRE-COMMIT HOOK RAN
+# ============================================================================
+
+if [ -f "$MARKER_FILE" ]; then
+    # Pre-commit hook ran normally
+    echo "[$TIMESTAMP] ✅ COMMIT: $COMMIT_HASH | Files: $FILES_CHANGED | $COMMIT_MSG" >> "$LOG_FILE"
+
+    # Clean up marker
+    rm -f "$MARKER_FILE"
+
+else
+    # Pre-commit hook was bypassed (--no-verify used)
+    echo "[$TIMESTAMP] ⚠️  COMMIT: $COMMIT_HASH | Files: $FILES_CHANGED | BYPASSED PRE-COMMIT | $COMMIT_MSG" >> "$LOG_FILE"
+
+    # Log detailed violation information
+    {
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "PRE-COMMIT HOOK BYPASSED"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "Timestamp:       $TIMESTAMP"
+        echo "Commit Hash:     $COMMIT_HASH"
+        echo "Author:          $COMMIT_AUTHOR <$COMMIT_EMAIL>"
+        echo "Files Changed:   $FILES_CHANGED"
+        echo "Commit Message:  $COMMIT_MSG"
+        echo ""
+        echo "Details:"
+        echo "  This commit was created with --no-verify or -n flag"
+        echo "  Pre-commit hook (Claude code review) was not executed"
+        echo ""
+        echo "Files Modified:"
+        git diff-tree --no-commit-id --name-only -r HEAD | sed 's/^/  - /'
+        echo ""
+        echo "═══════════════════════════════════════════════════════════════"
+        echo ""
+    } >> "$BYPASS_LOG"
+fi
+
+# ============================================================================
+# CLEANUP
+# ============================================================================
+
+# Clean up any session files
+rm -f .git/hooks/commit-session.json
+
+exit 0
