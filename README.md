@@ -5,10 +5,13 @@ Standardized project scaffolding for AI-assisted software development.
 ## What is This?
 
 A reusable template that includes:
+- ✅ Autonomous code review workflow with Claude
+- ✅ Intelligent review caching (40-60% token savings)
 - ✅ Cursor IDE rules for consistent AI behavior
 - ✅ Memory Bank structure for context preservation
 - ✅ Test-first development patterns
 - ✅ Multi-agent workflow definitions
+- ✅ Commit audit trail and bypass detection
 - ✅ Automation scripts for setup and maintenance
 
 ## Quick Start
@@ -31,6 +34,11 @@ cd ../my-new-project
 # 2. _docs/architecture.md (your system design)
 # 3. _docs/task-list.md (your tasks)
 # 4. _docs/best-practices/[stack].md (stack-specific patterns)
+
+# Install git hooks for autonomous code review
+cp scripts/pre-commit .git/hooks/pre-commit
+cp scripts/post-commit .git/hooks/post-commit
+chmod +x .git/hooks/pre-commit .git/hooks/post-commit
 ```
 
 ### Starting Development Session
@@ -52,12 +60,60 @@ Confirm current phase and next task.
 ### After Development Session
 
 ```bash
+# Commit changes (triggers automatic Claude review)
+git add <files>
+git commit -m "feat: your changes"
+# → Pre-commit hook runs Claude review
+# → Review results shown with approve/reject decision
+# → Commit proceeds only if approved
+
 # Update documentation
 ./scripts/update-docs.sh
 
 # Verify context health
 ./scripts/verify-context.sh
+
+# Audit commit history (optional)
+./scripts/audit-commits.sh
 ```
+
+## Code Review Workflow
+
+### How It Works
+
+1. **Make Changes**: Write code using Cursor with AI assistance
+2. **Stage Files**: `git add <files>` as usual
+3. **Attempt Commit**: `git commit -m "message"`
+4. **Automatic Review**: Pre-commit hook triggers Claude to review staged files
+5. **Cache Check**: Previously approved unchanged files skip review (40-60% faster)
+6. **Review Analysis**: Claude analyzes code for:
+   - Code quality and best practices
+   - Potential bugs or security issues
+   - Performance concerns
+   - Alignment with project architecture
+7. **Decision**: Commit proceeds if APPROVED, blocked if ISSUES FOUND
+8. **Logging**: All commits logged; bypasses tracked and auditable
+
+### Review Caching
+
+Files are cached after approval. Cache invalidated when:
+- File content changes (SHA-256 hash mismatch)
+- Dependencies change (imports/requires modified)
+- Dependency content changes (local file hashes)
+- Cache expires (30 days)
+
+### Bypassing Review
+
+For documentation or non-code files:
+```bash
+# Use the slash command (recommended)
+/commit-without-review
+
+# Or manual with -n flag + [skip-review] marker
+git commit -n -m "docs: update README [skip-review]"
+```
+
+**Note**: All bypasses are logged. Unauthorized bypasses (without `[skip-review]`) are flagged as violations.
 
 ## Directory Structure
 
@@ -65,6 +121,7 @@ Confirm current phase and next task.
 .cursor/rules/           ← Cursor IDE rules (process, standards)
 memory-bank/            ← Project context (filled per-project)
 _docs/                  ← Project documentation
+_logs/                  ← Commit logs and audit trail
 tests/patterns/         ← Reusable test templates
 scripts/                ← Automation scripts
 ```
@@ -91,12 +148,22 @@ scripts/                ← Automation scripts
 ## Cursor Slash Commands
 
 Available commands (use with `/` in Cursor):
+
+### Session Management
 - `/begin-development` - Start session: read Memory Bank, confirm current state (use this FIRST every session)
+- `/pause` - Gracefully pause development and save state for resumption
+- `/summarize` - Create context summary for session
+
+### Development Workflow
 - `/start-task [id]` - Read context, produce implementation plan
 - `/implement [id]` - Execute approved plan with test-first workflow
 - `/fix-tests` - Self-correcting loop to fix failing tests
+
+### Memory & Documentation
 - `/update-memory-bank` - Review and update all memory bank files
-- `/summarize` - Create context summary for session
+
+### Git Operations
+- `/commit-without-review` - Bypass code review with authorization (for docs/non-code files)
 
 ## Best Practices
 
@@ -131,6 +198,27 @@ Available commands (use with `/` in Cursor):
 
 ## Features
 
+### Autonomous Code Review
+- **Pre-commit hook** triggers Claude review on every commit
+- **Intelligent caching** with dependency tracking (40-60% token savings)
+- **Structured review format** with severity levels (CRITICAL/HIGH/MEDIUM)
+- **AUTO_ACCEPT validation** prevents bypassing without approval
+- **Commit audit trail** logs all bypasses with authorization tracking
+- Platform-compatible (macOS & Linux)
+
+### Review Caching System
+- Hash-based validation of file content
+- Dependency fingerprinting (TypeScript/JS/Python/Go)
+- 30-day cache expiry
+- Automatic invalidation on dependency changes
+- Separate tracking of external vs local dependencies
+
+### Commit Audit & Compliance
+- All commits logged to `_logs/all-commits.log`
+- Bypass detection with `[skip-review]` marker validation
+- Audit script (`scripts/audit-commits.sh`) for violation reporting
+- Authorized bypass support via `/commit-without-review` command
+
 ### Test-First Development
 - Write tests before implementation
 - Self-correcting AI loop
@@ -153,6 +241,9 @@ Available commands (use with `/` in Cursor):
 - `setup-project.sh` - Initialize new project from template
 - `update-docs.sh` - Documentation sync reminders
 - `verify-context.sh` - Context health check
+- `audit-commits.sh` - Analyze commit history for bypass violations
+- `pre-commit` - Autonomous code review hook
+- `post-commit` - Commit logging and bypass detection
 
 ## Support
 
