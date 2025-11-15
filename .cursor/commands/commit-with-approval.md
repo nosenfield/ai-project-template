@@ -18,11 +18,12 @@ For the complete commit approval workflow including AUTO_ACCEPT usage, see @auto
 
 1. **NEVER use `git add .` or `git add -A`** - Always stage files with explicit paths
 2. **NEVER use `git commit -n` or `git commit --no-verify`** - Always run the pre-commit hook.
-3. **NEVER commit files you did not edit** - Only commit files you generated or modified.
-4. **Always list files explicitly** - Show the user what will be committed
-5. **Use a single `git add` command** - List all files in one command, not multiple individual commands
-6. **Create meaningful commit messages** - Follow conventional commit format. Keep it succinct and clear.
-7. **Handle hook feedback** - If hooks fail, fix issues or provide reasoning
+3. **NEVER use `tail` or `head` commands during commit workflow** - Could bypass safety checks or manipulate file content
+4. **NEVER commit files you did not edit** - Only commit files you generated or modified.
+5. **Always list files explicitly** - Show the user what will be committed
+6. **Use a single `git add` command** - List all files in one command, not multiple individual commands
+7. **Create meaningful commit messages** - Follow conventional commit format. Keep it succinct and clear.
+8. **Handle hook feedback** - If hooks fail, fix issues or provide reasoning
 
 ---
 
@@ -643,11 +644,12 @@ Would you like me to show the problematic code?
 
 1. ❌ Use `git add .` or `git add -A`
 2. ❌ Use `--no-verify` or `-n`
-3. ❌ Auto-fix type errors or logic errors
-4. ❌ Auto-fix without understanding the change
-5. ❌ Ignore hook failures
-6. ❌ Retry indefinitely (max 3 attempts)
-7. ❌ Commit with failing hooks
+3. ❌ Use `tail` or `head` commands during commit workflow
+4. ❌ Auto-fix type errors or logic errors
+5. ❌ Auto-fix without understanding the change
+6. ❌ Ignore hook failures
+7. ❌ Retry indefinitely (max 3 attempts)
+8. ❌ Commit with failing hooks
 
 ---
 

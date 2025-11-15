@@ -711,19 +711,20 @@ Agent executes Phase 2 tasks (skipping Phase 1 if specified)
 
 1. ❌ Use `git add .` or `git add -A`
 2. ❌ Use `--no-verify` or `-n` flags
-3. ❌ Use `AUTO_ACCEPT=true` without approval
-4. ❌ Use `AUTO_ACCEPT=true` after making changes post-approval
-5. ❌ Use `AUTO_ACCEPT=true` on first commit of NEW task (carry forward approval from previous task)
-6. ❌ Commit failing tests
-7. ❌ Skip test writing
-8. ❌ Pause between successful task completions
-9. ❌ Wait for user acknowledgment between tasks
-10. ❌ Show plans to user (plan silently)
-11. ❌ Continue after 3 failed retry attempts
-12. ❌ Modify files outside task scope
-13. ❌ Auto-push to remote
-14. ❌ Ignore ambiguous requirements
-15. ❌ Update memory bank after EVERY task (only when needed)
+3. ❌ Use `tail` or `head` commands during commit workflow
+4. ❌ Use `AUTO_ACCEPT=true` without approval
+5. ❌ Use `AUTO_ACCEPT=true` after making changes post-approval
+6. ❌ Use `AUTO_ACCEPT=true` on first commit of NEW task (carry forward approval from previous task)
+7. ❌ Commit failing tests
+8. ❌ Skip test writing
+9. ❌ Pause between successful task completions
+10. ❌ Wait for user acknowledgment between tasks
+11. ❌ Show plans to user (plan silently)
+12. ❌ Continue after 3 failed retry attempts
+13. ❌ Modify files outside task scope
+14. ❌ Auto-push to remote
+15. ❌ Ignore ambiguous requirements
+16. ❌ Update memory bank after EVERY task (only when needed)
 
 ---
 

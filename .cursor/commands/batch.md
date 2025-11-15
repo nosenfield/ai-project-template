@@ -481,13 +481,14 @@ Add all test coverage for a specific module.
 3. Combine multiple tasks in one commit
 4. Use of `git add .` or `git add -A`
 5. Use of `--no-verify` or `-n`
-6. Use `AUTO_ACCEPT=true` without approval
-7. Use `AUTO_ACCEPT=true` after making changes post-approval
-8. Use `AUTO_ACCEPT=true` on first commit of NEW task (carry forward approval from previous task)
-9. Continue if dependencies fail
-10. Auto-push to remote
-11. Ignore ambiguous requirements
-12. Modify files outside task scope
+6. Use `tail` or `head` commands during commit workflow
+7. Use `AUTO_ACCEPT=true` without approval
+8. Use `AUTO_ACCEPT=true` after making changes post-approval
+9. Use `AUTO_ACCEPT=true` on first commit of NEW task (carry forward approval from previous task)
+10. Continue if dependencies fail
+11. Auto-push to remote
+12. Ignore ambiguous requirements
+13. Modify files outside task scope
 
 ---
 

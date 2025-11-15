@@ -770,6 +770,7 @@ Continuing to next task...
 
 ❌ Use `git commit -n` or `git commit --no-verify`
 ❌ Use `git add .` or `git add -A`
+❌ Use `tail` or `head` commands during commit workflow
 ❌ Use `AUTO_ACCEPT=true` without prior approval
 ❌ Use `AUTO_ACCEPT=true` after making changes post-approval
 ❌ Skip tests to continue execution
