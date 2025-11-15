@@ -7,7 +7,7 @@
 # ============================================================================
 
 LOG_FILE="_logs/all-commits.log"
-BYPASS_LOG="_logs/commit-violations.log"
+BYPASS_LOG="_logs/commit-bypasses.log"
 MARKER_FILE="_logs/.pre-commit-ran"
 
 # Ensure logs directory exists

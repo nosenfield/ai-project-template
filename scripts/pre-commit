@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # AUTO_ACCEPT VALIDATION & LOGGING
 # ============================================================================
 
-VIOLATION_LOG="_logs/commit-violations.log"
+VIOLATION_LOG="_logs/commit-bypasses.log"
 SESSION_FILE=".git/hooks/commit-session.json"
 
 # Ensure logs directory exists
