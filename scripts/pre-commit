@@ -174,6 +174,192 @@ echo -e "${BLUE}Staged files:${NC}"
 echo "$STAGED_FILES" | sed 's/^/  - /'
 echo ""
 
+# ============================================================================
+# REVIEW CACHE - Hash-Based with Dependency Tracking
+# ============================================================================
+
+REVIEW_CACHE=".git/hooks/review-cache.json"
+CACHE_EXPIRY_DAYS=30
+
+# Initialize cache if it doesn't exist
+if [ ! -f "$REVIEW_CACHE" ]; then
+    echo "{}" > "$REVIEW_CACHE"
+fi
+
+# Extract dependencies from a file (imports/requires)
+extract_dependencies() {
+    local file=$1
+    local deps=""
+
+    # TypeScript/JavaScript: import statements
+    deps=$(grep -E "^import .* from ['\"](.+)['\"]" "$file" 2>/dev/null | \
+           sed -E "s/.*from ['\"](.+)['\"].*/\1/" || true)
+
+    # TypeScript/JavaScript: require statements
+    deps="$deps"$'\n'$(grep -E "require\\(['\"](.+)['\"]\\)" "$file" 2>/dev/null | \
+           sed -E "s/.*require\\(['\"](.+)['\"]\\).*/\1/" || true)
+
+    # Python: import/from statements
+    deps="$deps"$'\n'$(grep -E "^(from|import) " "$file" 2>/dev/null | \
+           awk '{print $2}' || true)
+
+    # Go: import statements
+    deps="$deps"$'\n'$(grep -E '^import "' "$file" 2>/dev/null | \
+           sed -E 's/.*"(.+)".*/\1/' || true)
+
+    # Remove empty lines, relative path indicators, and duplicates
+    echo "$deps" | grep -v '^$' | sed 's/^\.\///' | sort -u
+}
+
+# Calculate dependency fingerprint (hash of all dependency hashes)
+calculate_dep_fingerprint() {
+    local file=$1
+    local deps=$(extract_dependencies "$file")
+    local fingerprint=""
+
+    if [ -z "$deps" ]; then
+        echo "NO_DEPS"
+        return
+    fi
+
+    # For each dependency, try to resolve and hash
+    while IFS= read -r dep; do
+        # Skip external packages (node_modules, etc.)
+        if [[ "$dep" =~ ^(@|[a-z-]+)/ ]] || [[ ! "$dep" =~ \. ]]; then
+            # External dependency - use import string itself
+            fingerprint="$fingerprint:$dep"
+        else
+            # Local dependency - resolve and hash
+            local dep_file=""
+            local dir=$(dirname "$file")
+
+            # Try to resolve relative import
+            for ext in "" ".ts" ".js" ".py" ".go"; do
+                if [ -f "$dir/$dep$ext" ]; then
+                    dep_file="$dir/$dep$ext"
+                    break
+                fi
+            done
+
+            if [ -n "$dep_file" ] && [ -f "$dep_file" ]; then
+                local dep_hash=$(git hash-object "$dep_file" 2>/dev/null || echo "MISSING")
+                fingerprint="$fingerprint:$dep_hash"
+            else
+                fingerprint="$fingerprint:$dep"
+            fi
+        fi
+    done <<< "$deps"
+
+    # Hash the combined fingerprint
+    echo -n "$fingerprint" | shasum -a 256 | cut -d' ' -f1
+}
+
+# Check if cache entry is valid
+check_cache() {
+    local file=$1
+    local current_hash=$(git hash-object "$file")
+    local current_dep_fp=$(calculate_dep_fingerprint "$file")
+
+    # Extract from cache using jq if available, otherwise grep
+    if command -v jq &> /dev/null; then
+        local cached_hash=$(jq -r --arg file "$file" '.[$file].content_hash // "NONE"' "$REVIEW_CACHE" 2>/dev/null || echo "NONE")
+        local cached_dep_fp=$(jq -r --arg file "$file" '.[$file].dependency_fingerprint // "NONE"' "$REVIEW_CACHE" 2>/dev/null || echo "NONE")
+        local cached_status=$(jq -r --arg file "$file" '.[$file].review_status // "NONE"' "$REVIEW_CACHE" 2>/dev/null || echo "NONE")
+        local cached_timestamp=$(jq -r --arg file "$file" '.[$file].last_reviewed // "0"' "$REVIEW_CACHE" 2>/dev/null || echo "0")
+    else
+        # Fallback: simple grep-based extraction
+        local entry=$(grep -A 5 "\"$file\"" "$REVIEW_CACHE" 2>/dev/null || echo "")
+        local cached_hash=$(echo "$entry" | grep -oP '"content_hash":\s*"\K[^"]+' || echo "NONE")
+        local cached_dep_fp=$(echo "$entry" | grep -oP '"dependency_fingerprint":\s*"\K[^"]+' || echo "NONE")
+        local cached_status=$(echo "$entry" | grep -oP '"review_status":\s*"\K[^"]+' || echo "NONE")
+        local cached_timestamp=$(echo "$entry" | grep -oP '"last_reviewed":\s*"\K[^"]+' || echo "0")
+    fi
+
+    # Check if cache is expired
+    if [ "$cached_timestamp" != "0" ]; then
+        local now=$(date +%s)
+        local cached_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$cached_timestamp" +%s 2>/dev/null || echo "0")
+        local age_days=$(( (now - cached_epoch) / 86400 ))
+
+        if [ $age_days -gt $CACHE_EXPIRY_DAYS ]; then
+            echo "EXPIRED"
+            return
+        fi
+    fi
+
+    # Cache hit if: hash matches AND dep fingerprint matches AND status is APPROVED
+    if [[ "$current_hash" == "$cached_hash" ]] && \
+       [[ "$current_dep_fp" == "$cached_dep_fp" ]] && \
+       [[ "$cached_status" == "APPROVED" ]]; then
+        echo "HIT"
+    else
+        echo "MISS"
+    fi
+}
+
+# Separate files into cached (skip) and needs-review
+CACHED_FILES=()
+REVIEW_FILES=()
+
+echo -e "${CYAN}Checking review cache...${NC}"
+
+while IFS= read -r file; do
+    cache_status=$(check_cache "$file")
+
+    if [ "$cache_status" == "HIT" ]; then
+        CACHED_FILES+=("$file")
+        echo -e "  ${GREEN}✓${NC} $file (cached - previously approved)"
+    else
+        REVIEW_FILES+=("$file")
+        if [ "$cache_status" == "EXPIRED" ]; then
+            echo -e "  ${YELLOW}📋${NC} $file (cache expired - needs review)"
+        else
+            echo -e "  ${YELLOW}📋${NC} $file (needs review)"
+        fi
+    fi
+done <<< "$STAGED_FILES"
+
+echo ""
+
+# If all files are cached, skip review
+if [ ${#REVIEW_FILES[@]} -eq 0 ]; then
+    echo -e "${GREEN}✅ All staged files previously approved (cache hit)${NC}"
+    echo -e "${GREEN}   Skipping Claude review - no changes detected${NC}"
+    echo ""
+    echo -e "${CYAN}Cached files (${#CACHED_FILES[@]}):${NC}"
+    for file in "${CACHED_FILES[@]}"; do
+        echo "  - $file"
+    done
+    echo ""
+
+    # Mark that pre-commit hook ran
+    touch _logs/.pre-commit-ran
+    exit 0
+fi
+
+# Show review summary
+echo -e "${CYAN}Review summary:${NC}"
+echo -e "  ${GREEN}Cached (skip):${NC} ${#CACHED_FILES[@]} files"
+echo -e "  ${YELLOW}Needs review:${NC} ${#REVIEW_FILES[@]} files"
+echo ""
+
+if [ ${#CACHED_FILES[@]} -gt 0 ]; then
+    echo -e "${GREEN}Skipping review for cached files:${NC}"
+    for file in "${CACHED_FILES[@]}"; do
+        echo "  - $file"
+    done
+    echo ""
+fi
+
+echo -e "${YELLOW}Reviewing files:${NC}"
+for file in "${REVIEW_FILES[@]}"; do
+    echo "  - $file"
+done
+echo ""
+
+# Update STAGED_FILES to only include files that need review
+STAGED_FILES=$(printf "%s\n" "${REVIEW_FILES[@]}")
+
 # Essential context files (always include)
 ESSENTIAL_CONTEXT=(
     "./_docs/architecture.md"
@@ -331,6 +517,115 @@ else
     else
         CLAUDE_STATUS="UNKNOWN"
     fi
+fi
+
+# Update review cache if review was approved
+if [ "$CLAUDE_STATUS" = "APPROVED" ]; then
+    echo -e "${GREEN}Updating review cache for approved files...${NC}"
+
+    # Initialize cache file if it doesn't exist
+    if [ ! -f "$REVIEW_CACHE" ]; then
+        echo "{}" > "$REVIEW_CACHE"
+    fi
+
+    # Update cache for each file that was reviewed (REVIEW_FILES)
+    for file in "${REVIEW_FILES[@]}"; do
+        if [ -f "$file" ]; then
+            # Calculate current hash and dependency fingerprint
+            file_hash=$(git hash-object "$file")
+            dep_fingerprint=$(calculate_dep_fingerprint "$file")
+
+            # Extract dependencies for storage
+            deps=$(extract_dependencies "$file")
+            deps_json="[]"
+            if [ -n "$deps" ]; then
+                # Convert dependencies to JSON array
+                deps_json="["
+                first=true
+                while IFS= read -r dep; do
+                    if [ "$first" = true ]; then
+                        first=false
+                    else
+                        deps_json="$deps_json,"
+                    fi
+                    # Escape quotes in dependency path
+                    escaped_dep=$(echo "$dep" | sed 's/"/\\"/g')
+                    deps_json="$deps_json\"$escaped_dep\""
+                done <<< "$deps"
+                deps_json="$deps_json]"
+            fi
+
+            # Get current commit hash for reference
+            reviewer_commit=$(git rev-parse HEAD 2>/dev/null || echo "uncommitted")
+
+            # Prepare cache entry
+            timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+            escaped_file=$(echo "$file" | sed 's/"/\\"/g')
+
+            # Update cache using jq if available, otherwise manual JSON manipulation
+            if command -v jq &>/dev/null; then
+                # Use jq for clean JSON manipulation
+                tmp_cache=$(mktemp)
+                jq --arg file "$file" \
+                   --arg hash "$file_hash" \
+                   --argjson deps "$deps_json" \
+                   --arg dep_fp "$dep_fingerprint" \
+                   --arg ts "$timestamp" \
+                   --arg status "APPROVED" \
+                   --arg commit "$reviewer_commit" \
+                   '.[$file] = {
+                       "content_hash": $hash,
+                       "dependencies": $deps,
+                       "dependency_fingerprint": $dep_fp,
+                       "last_reviewed": $ts,
+                       "review_status": $status,
+                       "reviewer_commit": $commit
+                   }' "$REVIEW_CACHE" > "$tmp_cache" && mv "$tmp_cache" "$REVIEW_CACHE"
+            else
+                # Fallback: manual JSON manipulation (append/replace entry)
+                # This is a simplified version that appends to the JSON
+                # Note: This doesn't handle duplicate keys perfectly, but cache validation handles it
+                tmp_cache=$(mktemp)
+
+                # Read existing cache, remove trailing } if exists
+                existing=$(cat "$REVIEW_CACHE" | sed 's/}[[:space:]]*$//')
+
+                # Check if cache is empty object
+                if echo "$existing" | grep -q "^{[[:space:]]*$"; then
+                    # Empty cache - first entry
+                    cat > "$tmp_cache" <<CACHE_EOF
+{
+  "$escaped_file": {
+    "content_hash": "$file_hash",
+    "dependencies": $deps_json,
+    "dependency_fingerprint": "$dep_fingerprint",
+    "last_reviewed": "$timestamp",
+    "review_status": "APPROVED",
+    "reviewer_commit": "$reviewer_commit"
+  }
+}
+CACHE_EOF
+                else
+                    # Has entries - append with comma
+                    cat > "$tmp_cache" <<CACHE_EOF
+$existing,
+  "$escaped_file": {
+    "content_hash": "$file_hash",
+    "dependencies": $deps_json,
+    "dependency_fingerprint": "$dep_fingerprint",
+    "last_reviewed": "$timestamp",
+    "review_status": "APPROVED",
+    "reviewer_commit": "$reviewer_commit"
+  }
+}
+CACHE_EOF
+                fi
+                mv "$tmp_cache" "$REVIEW_CACHE"
+            fi
+        fi
+    done
+
+    echo -e "${GREEN}✓ Cache updated for ${#REVIEW_FILES[@]} file(s)${NC}"
 fi
 
 # Get list of staged files
