@@ -693,6 +693,45 @@ git commit -m "feat: task 2"  # ✅ CORRECT - goes through Claude review
 AUTO_ACCEPT=true git commit -m "feat: task 2"  # ❌ WRONG - skips required review
 ```
 
+### 🔥 CRITICAL: Handling AUTO_ACCEPT Violations
+
+**If you receive an AUTO_ACCEPT violation error:**
+
+```bash
+⚠️  AUTO_ACCEPT VIOLATION DETECTED
+Violation: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+```
+
+**YOU MUST:**
+
+1. **IMMEDIATELY STOP using AUTO_ACCEPT** on the next retry
+2. **Retry the commit WITHOUT AUTO_ACCEPT**:
+   ```bash
+   git commit -m "exact same message"
+   ```
+3. **Go through normal Claude review**
+4. **ONLY use AUTO_ACCEPT after receiving "APPROVED" status**
+
+**NEVER:**
+- ❌ Retry with AUTO_ACCEPT=true again (will fail identically)
+- ❌ Try AUTO_ACCEPT multiple times hoping it works
+- ❌ Use --no-verify to bypass (absolutely forbidden)
+
+**Self-Correction Pattern:**
+```bash
+# ❌ Violation occurs
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# Error: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+
+# ✅ Correct response: Drop AUTO_ACCEPT
+$ git commit -m "feat: add auth"
+# Claude reviews... → "APPROVED"
+
+# ✅ NOW use AUTO_ACCEPT
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# Success
+```
+
 If ANY validation fails:
 → HALT execution
 → Report issue to user
