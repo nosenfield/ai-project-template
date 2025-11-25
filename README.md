@@ -254,20 +254,29 @@ After using project-prompt-template.md with Claude:
 Available commands (use with `/` in Cursor):
 
 ### Session Management
-- `/begin-development` - Start session: read Memory Bank, confirm current state (use this FIRST every session)
+- `/begin-development` - Start or resume session: reads Memory Bank, confirms current state (use FIRST every session)
 - `/pause` - Gracefully pause development and save state for resumption
-- `/summarize` - Create context summary for session
 
-### Development Workflow
-- `/start-task [id]` - Read context, produce implementation plan
-- `/implement [id]` - Execute approved plan with test-first workflow
+### Planning & Implementation
+- `/plan` - Create implementation plan for a task (with approval gate)
+- `/implement` - Execute approved plan with test-first workflow
+- `/task` - Execute single task autonomously (planning → implementation → commit)
+
+### Batch Execution
+- `/one-shot` - Execute single task or entire phase autonomously without pauses
+- `/batch` - Execute multiple tasks sequentially (e.g., `/batch 0.3-0.4` or `/batch 1.1 1.2 1.3`)
+
+### Testing & Debugging
 - `/fix-tests` - Self-correcting loop to fix failing tests
 
-### Memory & Documentation
-- `/update-memory-bank` - Review and update all memory bank files
-
 ### Git Operations
-- `/commit-without-review` - Bypass code review with authorization (for docs/non-code files)
+- `/commit-with-approval` - Stage files and commit with Claude code review workflow
+- `/commit-without-review` - Bypass code review for non-code files (docs, memory bank, logs)
+
+### Documentation & Tracking
+- `/update-memory-bank` - Review and update all Memory Bank files
+- `/update-tracker` - Update task tracker with completion status
+- `/summarize` - Create context summary for complex work (saved to _context-summaries/)
 
 ## Best Practices
 

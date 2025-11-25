@@ -63,6 +63,9 @@ cp scripts/post-commit .git/hooks/post-commit
 chmod +x .git/hooks/pre-commit
 chmod +x .git/hooks/post-commit
 
+# Remove hook source files from scripts/ (they're now in .git/hooks/)
+rm scripts/pre-commit scripts/post-commit
+
 git add .
 git commit -m "chore: initialize project from ai-template"
 
