@@ -57,3 +57,6 @@ output/**
 !output/.gitkeep
 !output/**/
 !output/**/.gitkeep
+
+# boilerplate dev docs
+_meta_docs/
