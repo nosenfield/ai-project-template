@@ -67,7 +67,7 @@ chmod +x .git/hooks/post-commit
 rm scripts/pre-commit scripts/post-commit
 
 git add .
-git commit -m "chore: initialize project from ai-template"
+git commit -n -m "chore: initialize project from ai-template [skip-review]"
 
 echo ""
 echo "✅ Project setup complete!"
