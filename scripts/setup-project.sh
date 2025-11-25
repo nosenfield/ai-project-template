@@ -22,11 +22,24 @@ echo "📋 Copying template files..."
 # Copy template structure
 cp -r ../ai-project-template/.cursor .
 cp -r ../ai-project-template/memory-bank .
-cp -r ../ai-project-template/_docs .
-cp -r ../ai-project-template/tests .
-cp -r ../ai-project-template/scripts .
 cp ../ai-project-template/.gitignore .
 cp ../ai-project-template/.cursorignore .
+
+# Copy _docs (excluding guides which aren't used yet)
+mkdir -p _docs/_boilerplate
+cp ../ai-project-template/_docs/README.md _docs/
+cp -r ../ai-project-template/_docs/_boilerplate _docs/
+
+# Copy tests
+cp -r ../ai-project-template/tests .
+
+# Copy scripts (excluding setup-project.sh which is template-only)
+mkdir -p scripts
+cp ../ai-project-template/scripts/pre-commit scripts/
+cp ../ai-project-template/scripts/post-commit scripts/
+cp ../ai-project-template/scripts/validate-project.sh scripts/
+cp ../ai-project-template/scripts/audit-commits.sh scripts/
+cp ../ai-project-template/scripts/verify-context.sh scripts/
 
 echo "✏️  Customizing templates..."
 
@@ -43,18 +56,47 @@ find memory-bank _docs -type f -name "*.md" -exec sed -i '' "s/\[PROJECT NAME\]/
 
 echo "📝 Creating initial git repository..."
 git init
+
+echo "🔧 Installing git hooks..."
+cp scripts/pre-commit .git/hooks/pre-commit
+cp scripts/post-commit .git/hooks/post-commit
+chmod +x .git/hooks/pre-commit
+chmod +x .git/hooks/post-commit
+
 git add .
 git commit -m "chore: initialize project from ai-template"
 
 echo ""
 echo "✅ Project setup complete!"
 echo ""
-echo "Next steps:"
-echo "1. cd ../$PROJECT_NAME"
-echo "2. Fill in memory-bank/projectBrief.md"
-echo "3. Create _docs/architecture.md"
-echo "4. Define _docs/task-list.md"
-echo "5. Add stack-specific best practices to _docs/best-practices/"
-echo "6. Start development!"
+echo "Git hooks installed - commits will trigger autonomous code review"
 echo ""
-echo "📚 Remember: AI should read memory-bank/activeContext.md and progress.md every session"
+echo "========================================="
+echo "NEXT STEPS: Follow Part 2 in the main README"
+echo "========================================="
+echo ""
+echo "1. Navigate to your project:"
+echo "   cd ../$PROJECT_NAME"
+echo ""
+echo "2. Place your PRD at $PROJECT_NAME/_docs/prd.md:"
+echo ""
+echo "3. Optional - Validate your project structure:"
+echo "   ./scripts/validate-project.sh"
+echo ""
+echo "4. Initialize project with Claude Code:"
+echo "   Open Cursor or Claude Code and use:"
+echo "   @_docs/_boilerplate/project-prompt-template.md"
+echo ""
+echo "5. If initialized with Claude, ask Claude to update the memory bank based on @$PROJECT_NAME/.cursor/commands/update-memory-bank.md"
+echo "   If initialized with Cursor, use /update-memory-bank command"
+echo ""
+echo "6. Begin development:"
+echo "   Use /begin-development command in Cursor"
+echo ""
+echo "========================================="
+echo "NOTE"
+echo "========================================="
+echo "The /begin-development command automatically loads Memory Bank"
+echo "context at the start of each chat. Use this command to ensure"
+echo "Cursor agents have full project context before starting work."
+echo ""

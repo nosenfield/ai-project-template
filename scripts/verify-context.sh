@@ -60,7 +60,6 @@ if [ $MISSING -eq 0 ]; then
   echo "💡 Recommendations:"
   echo "   • Update Memory Bank if you've completed tasks recently"
   echo "   • See .cursor/rules/memory-bank-management.mdc for procedures"
-  echo "   • Run scripts/update-docs.sh to review files"
   exit 0
 else
   echo "⚠️  Context health: NEEDS ATTENTION"

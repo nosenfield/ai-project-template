@@ -14,67 +14,142 @@ A reusable template that includes:
 - ✅ Commit audit trail and bypass detection
 - ✅ Automation scripts for setup and maintenance
 
-## Quick Start
+---
 
-### Creating a New Project
+## Part 1: Template → Boilerplate Project
+
+This section covers creating a new project with boilerplate structure ready for your project specifics.
+
+### 1.1 Create Boilerplate Project
 
 ```bash
 # Clone this template
-git clone <this-repo> ai-project-template
+git clone <repository-url> ai-project-template
 cd ai-project-template
 
-# Create new project
+# Create new project with boilerplate structure
 ./scripts/setup-project.sh my-new-project
 
 # Navigate to new project
 cd ../my-new-project
-
-# Fill in project-specific details
-# 1. memory-bank/projectBrief.md (describe your project)
-# 2. _docs/architecture.md (your system design)
-# 3. _docs/task-list.md (your tasks)
-# 4. _docs/best-practices/[stack].md (stack-specific patterns)
-
-# Install git hooks for autonomous code review
-cp scripts/pre-commit .git/hooks/pre-commit
-cp scripts/post-commit .git/hooks/post-commit
-chmod +x .git/hooks/pre-commit .git/hooks/post-commit
 ```
 
-### Starting Development Session
+### 1.2 What You Get
 
-**Use the `/begin-development` command in Cursor** to automatically:
+The setup script creates a boilerplate project with:
+
+**Renamed Memory Bank Files:**
+- `memory-bank/projectBrief.md` (from .template)
+- `memory-bank/productContext.md` (from .template)
+- `memory-bank/activeContext.md` (from .template)
+- `memory-bank/systemPatterns.md` (from .template)
+- `memory-bank/techContext.md` (from .template)
+- `memory-bank/progress.md` (from .template)
+
+**Complete Infrastructure:**
+- `.cursor/rules/` - Cursor IDE rules and workflows
+- `.cursor/commands/` - Cursor IDE development commands
+- `.git/hooks/` - Git hooks (installed automatically during setup)
+  - `pre-commit` - Autonomous code review with Claude
+  - `post-commit` - Commit logging and bypass detection
+- `scripts/` - Automation and utility scripts
+  - `validate-project.sh` - Validates project readiness before initialization
+  - `audit-commits.sh` - Analyzes commit history for unauthorized bypasses
+  - `verify-context.sh` - Checks Memory Bank and documentation health
+- `tests/patterns/` - Test templates
+- `_docs/_boilerplate/` - Template files for initialization
+
+**Empty Directories (populated in Part 2):**
+- `_docs/best-practices/` - Will contain stack-specific patterns
+- `_docs/task-list/` - Will contain chunked task files
+- `_docs/_backups/` - Will contain backups of task-list.md and best-practices.md before chunking
+
+Your project now has the boilerplate structure but contains no project-specific details yet.
+
+---
+
+## Part 2: Boilerplate → Project with Initial Docs
+
+This section covers overlaying your project specifics onto the boilerplate to generate initial development documentation and context.
+
+### 2.1 Prerequisites
+
+**Create your PRD** at `_docs/prd.md` with:
+- Product vision and goals
+- User stories and features
+- Technical requirements
+- Platform and performance requirements
+- Security and scalability considerations
+
+**Optional:** Validate your setup
+```bash
+./scripts/validate-project.sh
 ```
+
+### 2.2 Initialize with Claude
+
+1. Open your project in Cursor or Claude Code
+2. Use this prompt: `@_docs/_boilerplate/project-prompt-template.md`
+3. Augment the "Role" section expertise list with additional disciplines or technologies as needed
+4. Fill in the "Overview" section with your project description
+
+### 2.3 What Claude Creates
+
+**Project Documentation:**
+- `_docs/architecture.md` - Tech stack and system design
+- `_docs/task-list.md` - Implementation roadmap (single file)
+- `_docs/task-list/*.md` - Chunked task files with cross-references
+- `_docs/task-tracker.md` - Progress tracking
+- `_docs/best-practices.md` - Stack-specific coding patterns
+- `_docs/_backups/task-list.md` - Backup before chunking
+
+**Updated Memory Bank (project-specific):**
+- `memory-bank/projectBrief.md` - Concise project summary
+- `memory-bank/productContext.md` - Product vision and features
+- `memory-bank/techContext.md` - Tech stack details
+- `memory-bank/systemPatterns.md` - Architecture patterns
+- `memory-bank/activeContext.md` - Current phase (initialization complete)
+- `memory-bank/progress.md` - Initial task status
+
+### 2.4 Begin Development
+
+Your project now has complete documentation and context. You're ready to start development.
+
+**Start your first session:**
+```bash
+# Use the /begin-development command in Cursor
+```
+
+**Note:** Git hooks for autonomous code review were installed automatically during project setup. Every commit will trigger Claude to review your code.
+
+---
+
+## Working in Your Project
+
+### Starting Each Session
+
+Use `/begin-development` in Cursor to automatically:
 1. Read memory-bank/activeContext.md
 2. Read memory-bank/progress.md
 3. Confirm current phase and next tasks
-4. Display recent changes and active decisions
-```
 
-Or manually prompt AI assistant:
+Or manually:
 ```
 Read @memory-bank/activeContext.md and @memory-bank/progress.md.
 Confirm current phase and next task.
 ```
 
-### After Development Session
+### Commit With Review
 
+Use `/commit-with-approval` in Cursor to automatically:
+1. Stage working files from the most recent task
+2. Start the automated code review loop and commit the files
+
+Or manually:
 ```bash
-# Commit changes (triggers automatic Claude review)
+# Commit changes with automatic Claude review)
 git add <files>
 git commit -m "feat: your changes"
-# → Pre-commit hook runs Claude review
-# → Review results shown with approve/reject decision
-# → Commit proceeds only if approved
-
-# Update documentation
-./scripts/update-docs.sh
-
-# Verify context health
-./scripts/verify-context.sh
-
-# Audit commit history (optional)
-./scripts/audit-commits.sh
 ```
 
 ## Code Review Workflow
@@ -85,7 +160,7 @@ git commit -m "feat: your changes"
 2. **Stage Files**: `git add <files>` as usual
 3. **Attempt Commit**: `git commit -m "message"`
 4. **Automatic Review**: Pre-commit hook triggers Claude to review staged files
-5. **Cache Check**: Previously approved unchanged files skip review (40-60% faster)
+5. **Cache Check**: Previously approved unchanged files skip review
 6. **Review Analysis**: Claude analyzes code for:
    - Code quality and best practices
    - Potential bugs or security issues
@@ -104,12 +179,11 @@ Files are cached after approval. Cache invalidated when:
 
 ### Bypassing Review
 
-For documentation or non-code files:
-```bash
-# Use the slash command (recommended)
-/commit-without-review
+Use `/commit-without-review` in Cursor to bypass code review
 
-# Or manual with -n flag + [skip-review] marker
+Or manually:
+```bash
+# Commit changes and bypass Claude review
 git commit -n -m "docs: update README [skip-review]"
 ```
 
@@ -124,6 +198,38 @@ _docs/                  ← Project documentation
 _logs/                  ← Commit logs and audit trail
 tests/patterns/         ← Reusable test templates
 scripts/                ← Automation scripts
+```
+
+## Template vs Generated Files
+
+### Files Included in Template
+```
+.cursor/rules/              (Complete - all rules included)
+memory-bank/                (Templates only - .template suffix)
+  ├── *.md.template        (Renamed during setup)
+  └── README.md            (Reference documentation)
+_docs/
+  ├── README.md            (Structure guide)
+  ├── _boilerplate/        (Initialization templates)
+  ├── best-practices/      (Empty - populated by Claude)
+  └── task-list/           (Empty - populated by Claude)
+scripts/                   (Complete - all scripts included)
+tests/patterns/            (Complete - test templates included)
+```
+
+### Files Generated During Initialization
+```
+After setup-project.sh:
+  memory-bank/*.md         (Active files without .template suffix)
+
+After using project-prompt-template.md with Claude:
+  _docs/prd.md             (User creates this manually)
+  _docs/architecture.md
+  _docs/task-list.md
+  _docs/task-tracker.md
+  _docs/best-practices.md
+  _docs/task-list/*.md     (Chunked task files)
+  _docs/_backups/task-list.md (Backup of original)
 ```
 
 ## Key Files
@@ -142,8 +248,6 @@ scripts/                ← Automation scripts
 
 ### Reference When Needed
 - `_docs/architecture.md` - System design
-- `_docs/guides/multi-agent-workflow.md` - Multi-agent workflows
-- `_docs/guides/test-first-workflow.md` - Test-first development
 
 ## Cursor Slash Commands
 
@@ -169,9 +273,10 @@ Available commands (use with `/` in Cursor):
 
 ### For Developers
 1. **Start every session with `/begin-development`** to load context automatically
-2. Update memory bank after completing features
-3. Run verify-context.sh weekly
-4. Keep documentation in sync with code
+2. Use `/plan` and `/implement` commands for each task
+3. Use `commit-with-approval` to perform automated code review
+4. Verify Cursor automatically updated memory bank after completing features. Use `/update-memory-bank` to request manual update as needed.
+5. Keep documentation in sync with code
 
 ### For AI Assistants
 1. Read Memory Bank FIRST every session (see `.cursor/rules/memory-bank-management.mdc` for procedures)
@@ -239,17 +344,13 @@ Available commands (use with `/` in Cursor):
 
 ### Automation Scripts
 - `setup-project.sh` - Initialize new project from template
-- `update-docs.sh` - Documentation sync reminders
+- `validate-project.sh` - Validate proper pre-code project state
 - `verify-context.sh` - Context health check
 - `audit-commits.sh` - Analyze commit history for bypass violations
-- `pre-commit` - Autonomous code review hook
-- `post-commit` - Commit logging and bypass detection
 
 ## Support
 
 For questions or improvements, see:
-- [Multi-Agent Workflow Guide](_docs/guides/multi-agent-workflow.md)
-- [Test-First Workflow Guide](_docs/guides/test-first-workflow.md)
 - [Memory Bank README](memory-bank/README.md)
 
 ---

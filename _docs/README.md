@@ -1,43 +1,45 @@
 # Project Documentation
 
-## Quick Start
+This directory contains all documentation for your project.
 
-### New to This Project?
+## For New Developers
 
 Read in this order:
 1. [projectBrief.md](../memory-bank/projectBrief.md) - Project overview
-2. [architecture.md](./architecture.md) - System design
-3. [task-list.md](./task-list.md) - Current tasks
-4. [guides/multi-agent-workflow.md](./guides/multi-agent-workflow.md) - Multi-agent workflows
+2. [architecture.md](./architecture.md) - System design and tech stack
+3. [task-list.md](./task-list.md) - Implementation roadmap
 
-### For AI Sessions
+## For AI Sessions
 
-**Mandatory at every session start:**
-1. [memory-bank/activeContext.md](../memory-bank/activeContext.md) - Current work focus
-2. [memory-bank/progress.md](../memory-bank/progress.md) - Task status
-
-**For Memory Bank management:**
-- [.cursor/rules/memory-bank-management.mdc](../.cursor/rules/memory-bank-management.mdc) - Complete procedures
+**Start every session by reading:**
+1. [activeContext.md](../memory-bank/activeContext.md) - Current work focus
+2. [progress.md](../memory-bank/progress.md) - Task status
 
 **When implementing features:**
 - [architecture.md](./architecture.md) - System design reference
-- [best-practices/](./best-practices/) - Stack-specific patterns
+- [best-practices.md](./best-practices.md) - Stack-specific patterns
 
 **After completing work:**
-- Update Memory Bank (see memory-bank-management.mdc)
-- Update progress.md with completion status
-- Document decisions in activeContext.md
+- Update Memory Bank files
+- Update [progress.md](../memory-bank/progress.md) with completion status
+- Document decisions in [activeContext.md](../memory-bank/activeContext.md)
 
 ## Documentation Structure
 
 ### Memory Bank (../memory-bank/)
 Project context that AI reads every session.
 
-### Guides (./guides/)
-Process documentation and checklists.
+### Boilerplate (_boilerplate/)
+Template files used during project initialization. Not project-specific content.
 
 ### Best Practices (./best-practices/)
-Stack-specific coding standards.
+Stack-specific coding standards. Populated by Claude during project initialization based on chosen tech stack.
+
+### Task List (./task-list/)
+Chunked implementation tasks with cross-references. Created during initialization.
+
+### Backups (_backups/)
+Automated backups of documentation files before major restructuring operations. Created automatically when task-list.md is chunked into multiple files.
 
 ## Maintenance
 
