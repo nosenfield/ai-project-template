@@ -23,17 +23,36 @@ echo ""
 # ============================================================================
 
 if [ -f "$BYPASS_LOG" ]; then
-    # Count total bypasses
-    BYPASS_COUNT=$(grep -c "PRE-COMMIT HOOK BYPASSED" "$BYPASS_LOG")
-
-    # Count authorized bypasses (with [skip-review] marker)
-    AUTHORIZED_COUNT=$(grep -c "skip-review" "$BYPASS_LOG" 2>/dev/null)
-    if [ $? -ne 0 ]; then
+    # Check if file is empty vs just exists
+    if [ ! -s "$BYPASS_LOG" ]; then
+        echo -e "${GREEN}✓ Bypass log exists but is empty - no bypasses recorded.${NC}"
+        BYPASS_COUNT=0
         AUTHORIZED_COUNT=0
-    fi
+        VIOLATION_COUNT=0
+    else
+        # Count total bypasses (handle grep returning non-zero for no matches)
+        BYPASS_COUNT=$(grep -c "PRE-COMMIT HOOK BYPASSED" "$BYPASS_LOG" 2>/dev/null || echo "0")
+        # Ensure we have a number
+        BYPASS_COUNT=${BYPASS_COUNT:-0}
 
-    # Calculate violations (bypasses without authorization)
-    VIOLATION_COUNT=$((BYPASS_COUNT - AUTHORIZED_COUNT))
+        # Count authorized bypasses (with [skip-review] marker)
+        AUTHORIZED_COUNT=$(grep -c "skip-review" "$BYPASS_LOG" 2>/dev/null || echo "0")
+        AUTHORIZED_COUNT=${AUTHORIZED_COUNT:-0}
+
+        # Validate log format - each section should have consistent structure
+        # A valid section has: separator, header, separator, timestamp, commit hash, author, etc.
+        SECTION_COUNT=$(grep -c "^═══" "$BYPASS_LOG" 2>/dev/null || echo "0")
+        EXPECTED_SEPARATORS=$((BYPASS_COUNT * 2))  # 2 separators per entry
+
+        if [ "$SECTION_COUNT" -ne "$EXPECTED_SEPARATORS" ] && [ "$BYPASS_COUNT" -gt 0 ]; then
+            echo -e "${YELLOW}⚠️  Warning: Log file may have formatting issues.${NC}"
+            echo -e "${YELLOW}   Expected $EXPECTED_SEPARATORS separators, found $SECTION_COUNT${NC}"
+            echo ""
+        fi
+
+        # Calculate violations (bypasses without authorization)
+        VIOLATION_COUNT=$((BYPASS_COUNT - AUTHORIZED_COUNT))
+    fi
 
     if [ $VIOLATION_COUNT -gt 0 ]; then
         echo -e "${RED}⚠️  VIOLATIONS DETECTED: Commits bypassed without authorization${NC}"
@@ -102,31 +121,41 @@ if [ -f "$ALL_COMMITS_LOG" ]; then
     echo -e "${CYAN}─────────────────────────────────────────────────────────────${NC}"
     echo ""
 
-    TOTAL_COMMITS=$(wc -l < "$ALL_COMMITS_LOG" | tr -d ' ')
-    BYPASSED=$(grep -c "BYPASSED PRE-COMMIT" "$ALL_COMMITS_LOG" 2>/dev/null)
-    if [ $? -ne 0 ]; then
+    # Check if file is empty vs just exists
+    if [ ! -s "$ALL_COMMITS_LOG" ]; then
+        echo -e "${YELLOW}Commit log exists but is empty - no commits logged yet.${NC}"
+        TOTAL_COMMITS=0
         BYPASSED=0
+        NORMAL=0
+    else
+        TOTAL_COMMITS=$(wc -l < "$ALL_COMMITS_LOG" | tr -d ' ')
+        TOTAL_COMMITS=${TOTAL_COMMITS:-0}
+
+        BYPASSED=$(grep -c "BYPASSED PRE-COMMIT" "$ALL_COMMITS_LOG" 2>/dev/null || echo "0")
+        BYPASSED=${BYPASSED:-0}
+
+        NORMAL=$((TOTAL_COMMITS - BYPASSED))
     fi
-    NORMAL=$((TOTAL_COMMITS - BYPASSED))
 
-    echo -e "${BLUE}Total commits logged:${NC}       $TOTAL_COMMITS"
-    echo -e "${GREEN}Commits with pre-commit:${NC}    $NORMAL"
-    echo -e "${RED}Commits bypassed:${NC}           $BYPASSED"
+    # Only show stats if we have commits
+    if [ "$TOTAL_COMMITS" -gt 0 ]; then
+        echo -e "${BLUE}Total commits logged:${NC}       $TOTAL_COMMITS"
+        echo -e "${GREEN}Commits with pre-commit:${NC}    $NORMAL"
+        echo -e "${RED}Commits bypassed:${NC}           $BYPASSED"
 
-    if [ $TOTAL_COMMITS -gt 0 ]; then
         BYPASS_PERCENTAGE=$(awk "BEGIN {printf \"%.1f\", ($BYPASSED / $TOTAL_COMMITS) * 100}")
         echo -e "${YELLOW}Bypass rate:${NC}                $BYPASS_PERCENTAGE%"
-    fi
 
-    echo ""
-    echo -e "${CYAN}Recent commits (last 10):${NC}"
-    tail -n 10 "$ALL_COMMITS_LOG" | while IFS= read -r line; do
-        if echo "$line" | grep -q "BYPASSED PRE-COMMIT"; then
-            echo -e "${RED}$line${NC}"
-        else
-            echo -e "${GREEN}$line${NC}"
-        fi
-    done
+        echo ""
+        echo -e "${CYAN}Recent commits (last 10):${NC}"
+        tail -n 10 "$ALL_COMMITS_LOG" | while IFS= read -r line; do
+            if echo "$line" | grep -q "BYPASSED PRE-COMMIT"; then
+                echo -e "${RED}$line${NC}"
+            else
+                echo -e "${GREEN}$line${NC}"
+            fi
+        done
+    fi
 else
     echo -e "${YELLOW}No commit log found at: $ALL_COMMITS_LOG${NC}"
 fi

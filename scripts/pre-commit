@@ -15,9 +15,41 @@ NC='\033[0m' # No Color
 
 VIOLATION_LOG="_logs/commit-bypasses.log"
 SESSION_FILE=".git/hooks/commit-session.json"
+SESSION_LOCK=".git/hooks/commit-session.lock"
+CACHE_LOCK=".git/hooks/review-cache.lock"
 
 # Ensure logs directory exists
 mkdir -p _logs
+
+# ============================================================================
+# FILE LOCKING HELPERS
+# ============================================================================
+
+# File descriptor constants for locking
+FD_SESSION=200
+FD_CACHE=201
+
+# Acquire exclusive lock on session file
+acquire_session_lock() {
+    exec 200>"$SESSION_LOCK"
+    flock -x 200
+}
+
+# Release session file lock
+release_session_lock() {
+    flock -u 200 2>/dev/null || true
+}
+
+# Acquire exclusive lock on cache file
+acquire_cache_lock() {
+    exec 201>"$CACHE_LOCK"
+    flock -x 201
+}
+
+# Release cache file lock
+release_cache_lock() {
+    flock -u 201 2>/dev/null || true
+}
 
 # Fast hash calculation using git object IDs
 calculate_staged_hash() {
@@ -41,6 +73,9 @@ if [ "$AUTO_ACCEPT" = "true" ]; then
     CURRENT_HASH=$(calculate_staged_hash)
     CURRENT_FILE_COUNT=$(count_staged_files)
 
+    # Acquire session lock before reading
+    acquire_session_lock
+
     # Read previous session (if exists)
     if [ -f "$SESSION_FILE" ]; then
         if command -v jq &> /dev/null; then
@@ -62,6 +97,9 @@ if [ "$AUTO_ACCEPT" = "true" ]; then
         SESSION_ID="NEW_SESSION"
         IS_RETRY="false"
     fi
+
+    # Release session lock after reading
+    release_session_lock
 
     # Extract task ID from commit message
     COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
@@ -164,7 +202,7 @@ if [ "$AUTO_ACCEPT" = "true" ]; then
     rm -f "$SESSION_FILE"
 
     # Mark that pre-commit hook ran (for post-commit detection)
-    touch _logs/.pre-commit-ran
+    echo "pre-commit-hook-v1" > _logs/.pre-commit-ran
 
     # Allow commit
     exit 0
@@ -195,30 +233,41 @@ echo ""
 REVIEW_CACHE=".git/hooks/review-cache.json"
 CACHE_EXPIRY_DAYS=30
 
-# Initialize cache if it doesn't exist
+# Initialize cache if it doesn't exist (with locking)
+acquire_cache_lock
 if [ ! -f "$REVIEW_CACHE" ]; then
     echo "{}" > "$REVIEW_CACHE"
 fi
+release_cache_lock
 
 # Extract dependencies from a file (imports/requires)
+# Filters out commented lines to avoid false positives
 extract_dependencies() {
     local file=$1
     local deps=""
+    local file_content
+
+    # Read file content and filter out comment lines
+    # This handles single-line comments for JS/TS (//), Python (#), and Go (//)
+    file_content=$(sed -e 's/^[[:space:]]*\/\/.*//' \
+                       -e 's/^[[:space:]]*#.*//' \
+                       -e '/^[[:space:]]*\/\*/,/\*\//d' \
+                       "$file" 2>/dev/null || cat "$file" 2>/dev/null)
 
     # TypeScript/JavaScript: import statements
-    deps=$(grep -E "^import .* from ['\"](.+)['\"]" "$file" 2>/dev/null | \
+    deps=$(echo "$file_content" | grep -E "^import .* from ['\"](.+)['\"]" 2>/dev/null | \
            sed -E "s/.*from ['\"](.+)['\"].*/\1/" || true)
 
     # TypeScript/JavaScript: require statements
-    deps="$deps"$'\n'$(grep -E "require\\(['\"](.+)['\"]\\)" "$file" 2>/dev/null | \
+    deps="$deps"$'\n'$(echo "$file_content" | grep -E "require\\(['\"](.+)['\"]\\)" 2>/dev/null | \
            sed -E "s/.*require\\(['\"](.+)['\"]\\).*/\1/" || true)
 
-    # Python: import/from statements
-    deps="$deps"$'\n'$(grep -E "^(from|import) " "$file" 2>/dev/null | \
+    # Python: import/from statements (excluding commented lines)
+    deps="$deps"$'\n'$(echo "$file_content" | grep -E "^(from|import) " 2>/dev/null | \
            awk '{print $2}' || true)
 
     # Go: import statements
-    deps="$deps"$'\n'$(grep -E '^import "' "$file" 2>/dev/null | \
+    deps="$deps"$'\n'$(echo "$file_content" | grep -E '^import "' 2>/dev/null | \
            sed -E 's/.*"(.+)".*/\1/' || true)
 
     # Remove empty lines, relative path indicators, and duplicates
@@ -355,7 +404,7 @@ if [ ${#REVIEW_FILES[@]} -eq 0 ]; then
     echo ""
 
     # Mark that pre-commit hook ran
-    touch _logs/.pre-commit-ran
+    echo "pre-commit-hook-v1" > _logs/.pre-commit-ran
     exit 0
 fi
 
@@ -528,13 +577,19 @@ else
 fi
 
 # Parse Claude's response for approval status
-if echo "$CLAUDE_OUTPUT" | grep -q "Status.*APPROVED"; then
+# Match exact format: **Status**: APPROVED or **Status**: ISSUES FOUND
+if echo "$CLAUDE_OUTPUT" | grep -qE '^\*\*Status\*\*:\s*(APPROVED|Approved)'; then
     CLAUDE_STATUS="APPROVED"
-elif echo "$CLAUDE_OUTPUT" | grep -q "Status.*ISSUES"; then
+elif echo "$CLAUDE_OUTPUT" | grep -qE '^\*\*Status\*\*:\s*ISSUES'; then
+    CLAUDE_STATUS="ISSUES_FOUND"
+elif echo "$CLAUDE_OUTPUT" | grep -qE '\*\*Status\*\*:\s*(APPROVED|Approved)'; then
+    # Less strict match for Status anywhere in line
+    CLAUDE_STATUS="APPROVED"
+elif echo "$CLAUDE_OUTPUT" | grep -qE '\*\*Status\*\*:\s*ISSUES'; then
     CLAUDE_STATUS="ISSUES_FOUND"
 else
-    # Legacy format fallback
-    if echo "$CLAUDE_OUTPUT" | grep -iEq "APPROVED|Ready to commit|No issues found|LGTM|Looks good"; then
+    # Legacy format fallback - only match standalone keywords at word boundaries
+    if echo "$CLAUDE_OUTPUT" | grep -qE '\b(APPROVED)\b.*\b(commit|ready)\b|\b(Ready to commit)\b|\b(LGTM)\b'; then
         CLAUDE_STATUS="APPROVED"
     else
         CLAUDE_STATUS="UNKNOWN"
@@ -544,6 +599,9 @@ fi
 # Update review cache if review was approved
 if [ "$CLAUDE_STATUS" = "APPROVED" ]; then
     echo -e "${GREEN}Updating review cache for approved files...${NC}"
+
+    # Acquire cache lock for the entire update operation
+    acquire_cache_lock
 
     # Initialize cache file if it doesn't exist
     if [ ! -f "$REVIEW_CACHE" ]; then
@@ -587,7 +645,10 @@ if [ "$CLAUDE_STATUS" = "APPROVED" ]; then
             # Update cache using jq if available, otherwise manual JSON manipulation
             if command -v jq &>/dev/null; then
                 # Use jq for clean JSON manipulation
-                tmp_cache=$(mktemp)
+                tmp_cache=$(mktemp) || {
+                    echo -e "${RED}Failed to create temporary file for cache update${NC}" >&2
+                    continue
+                }
                 jq --arg file "$file" \
                    --arg hash "$file_hash" \
                    --argjson deps "$deps_json" \
@@ -604,18 +665,43 @@ if [ "$CLAUDE_STATUS" = "APPROVED" ]; then
                        "reviewer_commit": $commit
                    }' "$REVIEW_CACHE" > "$tmp_cache" && mv "$tmp_cache" "$REVIEW_CACHE"
             else
-                # Fallback: manual JSON manipulation (append/replace entry)
-                # This is a simplified version that appends to the JSON
-                # Note: This doesn't handle duplicate keys perfectly, but cache validation handles it
-                tmp_cache=$(mktemp)
+                # Fallback: manual JSON manipulation with duplicate key handling
+                tmp_cache=$(mktemp) || {
+                    echo -e "${RED}Failed to create temporary file for cache update${NC}" >&2
+                    continue
+                }
 
-                # Read existing cache, remove trailing } if exists
-                existing=$(cat "$REVIEW_CACHE" | sed 's/}[[:space:]]*$//')
+                # Remove existing entry for this file before appending (prevents duplicates)
+                # Use awk to properly handle multi-line JSON entries
+                if command -v python3 &>/dev/null; then
+                    # Use Python for reliable JSON manipulation if available
+                    python3 -c "
+import json
+import sys
+try:
+    with open('$REVIEW_CACHE', 'r') as f:
+        cache = json.load(f)
+except:
+    cache = {}
+cache['$escaped_file'] = {
+    'content_hash': '$file_hash',
+    'dependencies': $deps_json,
+    'dependency_fingerprint': '$dep_fingerprint',
+    'last_reviewed': '$timestamp',
+    'review_status': 'APPROVED',
+    'reviewer_commit': '$reviewer_commit'
+}
+with open('$tmp_cache', 'w') as f:
+    json.dump(cache, f, indent=2)
+" && mv "$tmp_cache" "$REVIEW_CACHE"
+                else
+                    # Pure bash fallback - read existing, remove duplicates via grep -v, append
+                    existing=$(cat "$REVIEW_CACHE" 2>/dev/null | sed 's/}[[:space:]]*$//')
 
-                # Check if cache is empty object
-                if echo "$existing" | grep -q "^{[[:space:]]*$"; then
-                    # Empty cache - first entry
-                    cat > "$tmp_cache" <<CACHE_EOF
+                    # Check if cache is empty object
+                    if echo "$existing" | grep -q "^{[[:space:]]*$"; then
+                        # Empty cache - first entry
+                        cat > "$tmp_cache" <<CACHE_EOF
 {
   "$escaped_file": {
     "content_hash": "$file_hash",
@@ -627,9 +713,9 @@ if [ "$CLAUDE_STATUS" = "APPROVED" ]; then
   }
 }
 CACHE_EOF
-                else
-                    # Has entries - append with comma
-                    cat > "$tmp_cache" <<CACHE_EOF
+                    else
+                        # Has entries - append with comma
+                        cat > "$tmp_cache" <<CACHE_EOF
 $existing,
   "$escaped_file": {
     "content_hash": "$file_hash",
@@ -641,11 +727,15 @@ $existing,
   }
 }
 CACHE_EOF
+                    fi
+                    mv "$tmp_cache" "$REVIEW_CACHE"
                 fi
-                mv "$tmp_cache" "$REVIEW_CACHE"
             fi
         fi
     done
+
+    # Release cache lock
+    release_cache_lock
 
     echo -e "${GREEN}✓ Cache updated for ${#REVIEW_FILES[@]} file(s)${NC}"
 fi
@@ -653,8 +743,63 @@ fi
 # Get list of staged files
 STAGED_FILES_LIST=$(git diff --cached --name-only --diff-filter=d)
 
-# Save session state to JSON file
-cat > "$SESSION_FILE" <<EOF
+# Acquire session lock before writing
+acquire_session_lock
+
+# Save session state to JSON file (with proper escaping to prevent injection)
+if command -v jq &>/dev/null; then
+    # Use jq for safe JSON generation
+    staged_files_json=$(echo "$STAGED_FILES_LIST" | jq -R -s 'split("\n") | map(select(length > 0))')
+    jq -n \
+        --arg session_id "$SESSION_ID" \
+        --arg task_id "$TASK_ID" \
+        --arg timestamp "$(date '+%Y-%m-%d %H:%M:%S')" \
+        --arg status "$CLAUDE_STATUS" \
+        --arg approved_hash "$CURRENT_HASH" \
+        --argjson file_count "$CURRENT_FILE_COUNT" \
+        --argjson staged_files "$staged_files_json" \
+        '{
+            session_id: $session_id,
+            task_id: $task_id,
+            timestamp: $timestamp,
+            status: $status,
+            approved_hash: $approved_hash,
+            file_count: $file_count,
+            staged_files: $staged_files
+        }' > "$SESSION_FILE"
+elif command -v python3 &>/dev/null; then
+    # Use Python for safe JSON generation
+    python3 -c "
+import json
+import sys
+staged_files = '''$STAGED_FILES_LIST'''.strip().split('\n') if '''$STAGED_FILES_LIST'''.strip() else []
+data = {
+    'session_id': '''$SESSION_ID''',
+    'task_id': '''$TASK_ID''',
+    'timestamp': '$(date '+%Y-%m-%d %H:%M:%S')',
+    'status': '''$CLAUDE_STATUS''',
+    'approved_hash': '''$CURRENT_HASH''',
+    'file_count': $CURRENT_FILE_COUNT,
+    'staged_files': staged_files
+}
+with open('$SESSION_FILE', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+else
+    # Fallback: escape special characters in filenames
+    escaped_files=""
+    while IFS= read -r f; do
+        [ -z "$f" ] && continue
+        # Escape backslashes, quotes, and control characters
+        escaped_f=$(printf '%s' "$f" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g')
+        if [ -z "$escaped_files" ]; then
+            escaped_files="\"$escaped_f\""
+        else
+            escaped_files="$escaped_files, \"$escaped_f\""
+        fi
+    done <<< "$STAGED_FILES_LIST"
+
+    cat > "$SESSION_FILE" <<EOF
 {
   "session_id": "$SESSION_ID",
   "task_id": "$TASK_ID",
@@ -662,11 +807,13 @@ cat > "$SESSION_FILE" <<EOF
   "status": "$CLAUDE_STATUS",
   "approved_hash": "$CURRENT_HASH",
   "file_count": $CURRENT_FILE_COUNT,
-  "staged_files": [
-$(echo "$STAGED_FILES_LIST" | sed 's/^/    "/;s/$/"/' | paste -sd ',' -)
-  ]
+  "staged_files": [$escaped_files]
 }
 EOF
+fi
+
+# Release session lock
+release_session_lock
 
 # Check for non-interactive mode (CI or explicit flag)
 if [ "$AUTO_ACCEPT" = "true" ]; then
@@ -690,7 +837,7 @@ case "$response" in
             [yY])
                 echo -e "${GREEN}✓ Proceeding with commit...${NC}"
                 # Mark that pre-commit hook ran (for post-commit detection)
-                touch _logs/.pre-commit-ran
+                echo "pre-commit-hook-v1" > _logs/.pre-commit-ran
                 exit 0
                 ;;
             *)
@@ -702,7 +849,7 @@ case "$response" in
     [yY])
         echo -e "${GREEN}✓ Proceeding with commit...${NC}"
         # Mark that pre-commit hook ran (for post-commit detection)
-        touch _logs/.pre-commit-ran
+        echo "pre-commit-hook-v1" > _logs/.pre-commit-ran
         exit 0
         ;;
     *)
