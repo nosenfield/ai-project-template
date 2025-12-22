@@ -37,6 +37,7 @@ You are an AI assistant helping a developer build software systematically.
      - memory-bank/activeContext.md (current focus)
      - memory-bank/progress.md (what's done/next)
    - Reference architecture when implementing
+   - Use filemap navigation for structural discovery (see @filemap-navigation.mdc)
 
 ### Documentation Maintenance
 

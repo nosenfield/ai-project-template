@@ -1,0 +1,106 @@
+---
+description: Filemap navigation system for structural codebase discovery
+alwaysApply: true
+---
+
+# Filemap Navigation System
+
+This project uses `.filemap.json` files for structural codebase navigation. These files provide module purposes, file exports, and dependencies without requiring full file reads.
+
+## Schema Reference
+
+```json
+{
+  "v": 1,                    // Schema version (always 1)
+  "m": "module-name",        // Module name
+  "p": "Purpose sentence",   // What this directory does
+  "_": "ISO-timestamp",      // When filemap was generated
+  "f": {                     // Files and their exports
+    "file.ts": ["export1", "export2"]
+  },
+  "i": ["dep/path"],         // Import dependencies
+  "d": ["subdir"]            // Subdirectories with own filemaps
+}
+```
+
+## Before Modifying Any Directory
+
+1. Check if `.filemap.json` exists in the target directory
+2. If present, read it BEFORE reading any source files
+3. Use filemap to understand:
+   - Module purpose (`p`)
+   - Available files and their APIs (`f`)
+   - External dependencies (`i`)
+   - Child modules (`d`)
+
+## Task Planning Workflow
+
+1. Identify target module from task description
+2. Read target module's `.filemap.json`
+3. Review exports in `f` to understand available APIs
+4. Check `i` for dependencies that may need changes
+5. For each dependency in `i`:
+   - Navigate to that directory
+   - Read its `.filemap.json`
+   - Identify relevant exports
+6. Check `d` for subdirectories that may be relevant
+7. Only after understanding structure, read actual source files
+
+## Staleness Detection
+
+Treat filemap as potentially stale if:
+- Files you expect to exist are not listed in `f`
+- You create or delete files during the task
+- Task description mentions "new" or "recently added" files
+- Referenced imports point to directories without filemaps
+
+When uncertain:
+- Verify against actual directory contents
+- Proceed with available information
+- After task completion, note if filemaps need regeneration
+
+Do not manually edit filemaps (automated regeneration handles this).
+
+## Dependency Tracing
+
+When a task affects shared code:
+1. Read the module's filemap
+2. Note which exports are being modified
+3. Search for other filemaps that import this module
+4. Identify downstream consumers that may need updates
+
+## Root Filemap Usage
+
+The root `.filemap.json` provides:
+- Project-level purpose description
+- Top-level entry points (if any)
+- List of major subdirectories to explore
+
+Read root filemap when:
+- Starting a new task with unclear scope
+- Needing to understand project organization
+- Looking for the right module to modify
+
+Skip root filemap when:
+- Task explicitly names target module
+- Continuing previous work in known area
+
+## Handling Missing Filemaps
+
+If a referenced module lacks a `.filemap.json`:
+1. Note the gap (partial coverage is expected during adoption)
+2. Fall back to reading directory listing
+3. Read key source files directly
+4. Continue with reduced structural awareness
+5. Do not block on missing filemaps
+
+## Post-Modification Notes
+
+After creating new files:
+1. Note that `.filemap.json` needs regeneration
+2. Inform user that filemap update may be needed
+3. Do not attempt to manually update filemap
+
+After deleting files:
+1. Note that `.filemap.json` references stale entries
+2. Inform user that filemap regeneration is needed
