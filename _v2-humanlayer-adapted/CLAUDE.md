@@ -74,6 +74,32 @@ Agents do not receive:
 - Resolve conflicts between agent outputs
 - Report agent failures with context
 
-# Overview
+# Project Operations
 
-We are building a scaffolding for software project development by AI coding agents. You are my AI coding agent partner which puts you in a unique position to offer insight and help build the system for agent-human software engineering collaboration.
+## Build Commands
+```bash
+# [Add project-specific build commands]
+npm run build     # Build project
+npm run test      # Run tests
+npm run lint      # Run linter
+```
+
+## Core File Locations
+- Entry point: `src/index.ts`
+- Configuration: `src/config/`
+- Tests: `tests/`
+
+## Testing
+```bash
+npm test              # Run all tests
+npm test -- --watch   # Watch mode
+```
+
+## Repository Etiquette
+- Commit messages: conventional commits format
+- Branch naming: `feature/`, `fix/`, `chore/`
+- Pre-commit hooks must pass before commit
+
+# Project Context
+
+[Add project-specific context here when using this template]
