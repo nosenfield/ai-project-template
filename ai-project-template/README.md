@@ -5,9 +5,10 @@ Standardized project scaffolding for AI-assisted software development.
 ## What is This?
 
 A reusable template that includes:
+- ✅ Native support for both **Claude Code CLI** and **Cursor IDE**
 - ✅ Autonomous code review workflow with Claude
 - ✅ Intelligent review caching (40-60% token savings)
-- ✅ Cursor IDE rules for consistent AI behavior
+- ✅ Specialized agents for codebase research and implementation
 - ✅ Memory Bank structure for context preservation
 - ✅ Test-first development patterns
 - ✅ Multi-agent workflow definitions
@@ -49,6 +50,8 @@ The setup script creates a boilerplate project with:
 **Complete Infrastructure:**
 - `.cursor/rules/` - Cursor IDE rules and workflows
 - `.cursor/commands/` - Cursor IDE development commands
+- `.claude/agents/` - Claude Code specialized agents
+- `.claude/commands/` - Claude Code workflow commands
 - `.git/hooks/` - Git hooks (installed automatically during setup)
   - `pre-commit` - Autonomous code review with Claude
   - `post-commit` - Commit logging and bypass detection
@@ -193,6 +196,10 @@ git commit -n -m "docs: update README [skip-review]"
 
 ```
 .cursor/rules/           ← Cursor IDE rules (process, standards)
+.cursor/commands/        ← Cursor IDE slash commands
+.claude/agents/          ← Claude Code specialized agents
+.claude/commands/        ← Claude Code workflow commands
+.claude/shared/          ← Shared constraints for all agents
 memory-bank/            ← Project context (filled per-project)
 _docs/                  ← Project documentation
 _logs/                  ← Commit logs and audit trail
@@ -205,6 +212,10 @@ scripts/                ← Automation scripts
 ### Files Included in Template
 ```
 .cursor/rules/              (Complete - all rules included)
+.cursor/commands/           (Complete - all commands included)
+.claude/agents/             (Complete - all agents included)
+.claude/commands/           (Complete - all commands included)
+.claude/shared/             (Complete - shared constraints)
 memory-bank/                (Templates only - .template suffix)
   ├── *.md.template        (Renamed during setup)
   └── README.md            (Reference documentation)
@@ -248,6 +259,38 @@ After using project-prompt-template.md with Claude:
 
 ### Reference When Needed
 - `_docs/architecture.md` - System design
+
+## Claude Code Commands
+
+Available commands when using Claude Code CLI:
+
+### Research & Planning
+- `/research_codebase` - Comprehensive codebase research with parallel agents
+- `/create_plan` - Create detailed implementation plan with research
+- `/iterate_plan` - Update existing plan based on feedback
+
+### Implementation
+- `/implement_plan` - Execute approved plan phase by phase
+- `/tdd` - Test-driven development workflow (RED → GREEN → REFACTOR)
+
+### Review & Handoff
+- `/code_review` - Review changes before commit
+- `/create_handoff` - Create session continuity document
+- `/resume_handoff` - Resume work from handoff document
+
+### Available Agents
+
+Claude Code can spawn specialized agents for focused tasks:
+
+| Agent | Purpose |
+|-------|---------|
+| `codebase-locator` | Find WHERE code lives in the codebase |
+| `codebase-analyzer` | Understand HOW code works |
+| `codebase-pattern-finder` | Find similar implementations |
+| `implementer` | Execute code changes from approved plans |
+| `code-reviewer` | Validate changes before commit |
+
+---
 
 ## Cursor Slash Commands
 
@@ -364,8 +407,8 @@ For questions or improvements, see:
 
 ---
 
-**Version**: 1.0
-**Last Updated**: November 2025
+**Version**: 2.0
+**Last Updated**: December 2025
 **Created by**: AI-First Development Team
 
 Use freely, adapt as needed, and improve based on your learnings.
