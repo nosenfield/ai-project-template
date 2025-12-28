@@ -1,0 +1,242 @@
+---
+description: Rules for delegating work to subagents for context management
+alwaysApply: true
+---
+
+# Subagent Delegation Protocol
+
+## Purpose
+
+V1.5 introduces subagent delegation to address context ballooning in post-MVP development. Subagents execute work in isolated context windows, returning concise summaries to preserve the orchestrator's context.
+
+## Available Subagents
+
+| Subagent | Model | Tools | Purpose |
+|----------|-------|-------|---------|
+| `explorer` | haiku | Read-only | Codebase exploration, file discovery, dependency mapping |
+| `implementer` | sonnet | All | Code implementation with TDD |
+
+## When to Delegate
+
+### Explorer Subagent
+
+**MUST delegate when:**
+- Task requires finding files and affected files are unknown
+- Exploration would require >5 file reads
+- Task spans multiple modules or systems
+- Answering "where is X?" or "how does Y work?"
+- Starting `/plan` for a non-trivial task
+
+**DO NOT delegate when:**
+- Files to modify are already known
+- Task is confined to 1-2 known files
+- Quick lookup of a single file
+
+### Implementer Subagent
+
+**MUST delegate when:**
+- Implementation exceeds 50 lines of changes
+- Changes span 3 or more files
+- Complex refactoring within scope
+- Bug fixes requiring investigation
+
+**DO NOT delegate when:**
+- Simple edits under 50 lines in 1-2 files
+- Documentation-only changes
+- Configuration changes
+- Quick fixes with known solution
+
+## Delegation Decision Tree
+
+```
+Task received
+    │
+    ├─► Are affected files known?
+    │       │
+    │       NO ──► Delegate to EXPLORER
+    │       │
+    │       YES
+    │           │
+    │           ├─► Is change >50 lines OR >3 files?
+    │           │       │
+    │           │       YES ──► Delegate to IMPLEMENTER
+    │           │       │
+    │           │       NO ──► Execute DIRECTLY
+    │           │
+    │           └─► Complex logic or investigation needed?
+    │                   │
+    │                   YES ──► Delegate to IMPLEMENTER
+    │                   │
+    │                   NO ──► Execute DIRECTLY
+```
+
+## Delegation Format
+
+When delegating to a subagent, provide clear context:
+
+### To Explorer
+```markdown
+**Exploration Request**
+
+Target: [what to explore - feature, system, pattern]
+Depth: [quick / medium / thorough]
+
+Context:
+- Task: [task-id if applicable]
+- Purpose: [why exploring - planning, debugging, understanding]
+
+Questions to Answer:
+- [Specific question 1]
+- [Specific question 2]
+
+Constraints:
+- [Any scope limitations]
+```
+
+### To Implementer
+```markdown
+**Implementation Request**
+
+Task: [task-id] - [description]
+
+Requirements:
+- [Requirement 1]
+- [Requirement 2]
+
+Exploration Summary:
+[Paste relevant parts of explorer's summary]
+
+Files to Modify:
+- `path/to/file1.ts` - [what to change]
+- `path/to/file2.ts` - [what to change]
+
+Constraints:
+- Do NOT modify [specific exclusions]
+- Follow pattern from [reference file]
+- Tests must cover [specific scenarios]
+
+Success Criteria:
+- [Criterion 1]
+- [Criterion 2]
+```
+
+## Handling Subagent Results
+
+### From Explorer
+
+1. **Receive summary** (1-2K tokens)
+2. **Do NOT re-read files** the explorer already summarized
+3. **Use summary** for planning or delegation to implementer
+4. **Note risks** identified by explorer
+
+### From Implementer
+
+1. **Receive summary** (2-3K tokens)
+2. **Verify status**: COMPLETE, PARTIAL, or FAILED
+3. **If COMPLETE**: Proceed to commit workflow
+4. **If PARTIAL/FAILED**: Review notes, decide next action
+5. **Stage and commit** using orchestrator's commit workflow
+
+## Orchestrator Purity Principle
+
+The main orchestrator agent MUST remain a pure coordinator when context management is needed.
+
+**Orchestrator Responsibilities:**
+- Receive user requests
+- Decide when to delegate
+- Coordinate between subagents
+- Handle commit workflow
+- Manage memory bank updates
+- Report progress to user
+
+**Orchestrator MUST NOT:**
+- Do work that should be delegated (when thresholds met)
+- Re-read files that subagents already summarized
+- Ignore subagent recommendations without justification
+- Implement complex changes directly when implementer threshold met
+
+**Orchestrator MAY:**
+- Execute simple tasks directly (under thresholds)
+- Make minor edits after implementer completes
+- Fix trivial issues without delegation
+
+## Context Preservation
+
+### Before Delegation
+- Note current task state
+- Prepare delegation request with full context
+- Ensure memory bank is current
+
+### After Delegation
+- Capture subagent summary into context
+- Update memory bank if significant discovery
+- Do NOT request raw output details from subagent
+- Continue using summary only
+
+### Context Budget Targets
+
+| Component | Target |
+|-----------|--------|
+| Orchestrator active context | <50% of window |
+| Explorer summary | 1-2K tokens |
+| Implementer summary | 2-3K tokens |
+| Preserved from previous tasks | <10K tokens |
+
+## Integration with Existing Workflows
+
+### With Commit Approval Workflow
+
+Subagent delegation does NOT change the commit workflow:
+1. Implementer makes changes, returns summary
+2. **Orchestrator** stages files (explicit paths)
+3. **Orchestrator** runs commit with approval workflow
+4. AUTO_ACCEPT rules remain unchanged
+5. Pre-commit hook runs as normal
+
+### With Autonomous Mode
+
+In `/one-shot` and `/batch` autonomous execution:
+
+```
+For each task:
+  1. Assess: delegation needed?
+  2. If YES: delegate to explorer → receive summary
+  3. Assess: implementation delegation needed?
+  4. If YES: delegate to implementer → receive summary
+  5. Orchestrator handles commit workflow (unchanged)
+  6. Continue to next task
+```
+
+### With Manual Mode
+
+In `/plan` and `/implement` manual workflows:
+- Delegation is optional based on thresholds
+- User approval gates remain in place
+- Summaries included in plan/completion reports
+
+## Forbidden Patterns
+
+1. **Orchestrator doing delegatable work**: If thresholds are met, delegate
+2. **Re-exploring what subagent found**: Trust the summary
+3. **Ignoring subagent findings**: Address or justify skipping recommendations
+4. **Parallel subagent spawning**: Execute subagents sequentially
+5. **Subagents spawning subagents**: Single level of delegation only
+6. **Subagents committing**: Only orchestrator commits
+
+## Error Handling
+
+### Explorer Fails
+- Report exploration failure to user
+- Attempt manual exploration if simple
+- Halt if complex exploration required
+
+### Implementer Fails
+- Review failure summary
+- Check if issue is within scope to fix
+- If recoverable: fix and retry (orchestrator)
+- If not recoverable: halt and report to user
+
+### Delegation Timeout
+- If subagent takes too long, assume failure
+- Report to user with available information
+- Allow manual intervention

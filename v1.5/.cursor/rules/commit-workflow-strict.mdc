@@ -1,0 +1,291 @@
+---
+description: STRICT commit workflow rules - AUTO_ACCEPT enforcement
+alwaysApply: true
+priority: 999
+---
+
+# STRICT Commit Workflow Rules
+
+## ⚠️ CRITICAL: AUTO_ACCEPT Usage Rules
+
+### The ONLY Valid AUTO_ACCEPT Pattern
+
+```bash
+# Step 1: First commit attempt (NEVER use AUTO_ACCEPT here)
+$ git commit -m "feat: implement feature"
+# → Claude reviews → Returns feedback
+
+# Step 2: Analyze Claude's response
+# IF Status = "APPROVED" AND Critical Issues = "None" AND No changes made
+#   → Proceed to Step 3
+# ELSE
+#   → Fix issues, go back to Step 1 (still no AUTO_ACCEPT)
+
+# Step 3: Retry with AUTO_ACCEPT (ONLY if approved and no changes)
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+# → Commit succeeds ✅
+```
+
+## 🚫 FORBIDDEN Patterns (Will Be Blocked)
+
+### Pattern 1: AUTO_ACCEPT on First Attempt
+```bash
+# ❌ WRONG - This will ALWAYS fail
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+
+# Error: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+# NO session file exists yet - cannot validate approval
+```
+
+**Why forbidden**: No prior approval exists to validate against.
+
+### Pattern 2: AUTO_ACCEPT After Issues Found
+```bash
+# Attempt 1
+$ git commit -m "feat: implement feature"
+# Claude responds: "ISSUES FOUND - Fix SQL injection"
+
+# ❌ WRONG - This will fail
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+
+# Error: AUTO_ACCEPT_WITHOUT_APPROVAL
+# Previous status was "ISSUES_FOUND", not "APPROVED"
+```
+
+**Why forbidden**: Cannot bypass required fixes with AUTO_ACCEPT.
+
+### Pattern 3: AUTO_ACCEPT After Making Changes
+```bash
+# Attempt 1
+$ git commit -m "feat: implement feature"
+# Claude responds: "APPROVED - Consider adding JSDoc"
+
+# Agent decides to implement JSDoc recommendation
+# Files are modified...
+$ git add src/auth.ts
+
+# ❌ WRONG - This will fail
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+
+# Error: AUTO_ACCEPT_WITH_MODIFIED_CONTENT
+# Content hash changed since approval
+```
+
+**Why forbidden**: New changes require new approval.
+
+### Pattern 4: Persistent Retry with AUTO_ACCEPT
+```bash
+# ❌ WRONG - Never do this
+$ AUTO_ACCEPT=true git commit -m "..."  # Fails
+$ AUTO_ACCEPT=true git commit -m "..."  # Fails again
+$ AUTO_ACCEPT=true git commit -m "..."  # Still fails
+
+# This creates violation spam and wastes time
+```
+
+**Why forbidden**: If AUTO_ACCEPT fails once, it will keep failing. You must fix the root cause.
+
+## ✅ CORRECT Workflows
+
+### Workflow A: Approval with No Issues
+
+```bash
+# Step 1: Initial commit (no AUTO_ACCEPT)
+$ git commit -m "feat: implement feature"
+
+# Claude responds:
+# Status: APPROVED
+# Critical Issues: None
+# Recommendations: None
+# Decision: Ready to commit
+
+# Step 2: Immediate retry with AUTO_ACCEPT
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+# ✅ Success
+```
+
+**Key**: Approval received, no changes needed, use AUTO_ACCEPT immediately.
+
+### Workflow B: Issues Found → Fix → Approval
+
+```bash
+# Step 1: Initial commit (no AUTO_ACCEPT)
+$ git commit -m "feat: implement feature"
+
+# Claude responds:
+# Status: ISSUES FOUND
+# Critical Issues: SQL injection at line 42
+# Fix required
+
+# Step 2: Fix the issue
+$ edit src/auth.ts  # Fix SQL injection
+$ git add src/auth.ts
+
+# Step 3: NEW commit attempt (still no AUTO_ACCEPT)
+$ git commit -m "feat: implement feature"
+
+# Claude responds:
+# Status: APPROVED
+# Critical Issues: None
+
+# Step 4: NOW use AUTO_ACCEPT
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+# ✅ Success
+```
+
+**Key**: Each fix requires NEW approval. Only use AUTO_ACCEPT after receiving "APPROVED".
+
+### Workflow C: Approval with Recommendations → Implement → New Approval
+
+```bash
+# Step 1: Initial commit (no AUTO_ACCEPT)
+$ git commit -m "feat: implement feature"
+
+# Claude responds:
+# Status: APPROVED
+# Recommendations: Add rate limiting (significant)
+
+# Step 2: Agent decides recommendation is significant
+$ edit src/auth.ts  # Add rate limiting
+$ git add src/auth.ts
+
+# Step 3: NEW commit attempt (back to no AUTO_ACCEPT)
+$ git commit -m "feat: implement feature"
+
+# Claude responds:
+# Status: APPROVED
+# Critical Issues: None
+
+# Step 4: NOW use AUTO_ACCEPT
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+# ✅ Success
+```
+
+**Key**: Any changes reset approval state. Must get NEW approval.
+
+### Workflow D: Approval with Recommendations → Defer
+
+```bash
+# Step 1: Initial commit (no AUTO_ACCEPT)
+$ git commit -m "feat: implement feature"
+
+# Claude responds:
+# Status: APPROVED
+# Recommendations: Add JSDoc comments (documentation)
+
+# Step 2: Agent decides recommendation is not significant/out-of-scope
+# NO changes made
+
+# Step 3: Use AUTO_ACCEPT (no changes since approval)
+$ AUTO_ACCEPT=true git commit -m "feat: implement feature"
+# ✅ Success
+```
+
+**Key**: If NO changes made after approval, can use AUTO_ACCEPT immediately.
+
+## 🔍 Decision Tree for AUTO_ACCEPT
+
+```
+Attempting to commit?
+│
+├─ Have I already committed this exact content before (in this task)?
+│  ├─ YES → ❌ WRONG: Should already be committed
+│  └─ NO → Continue
+│
+├─ Is this my FIRST commit attempt for these changes?
+│  ├─ YES → ❌ NEVER use AUTO_ACCEPT=true
+│  │         Use: git commit -m "..."
+│  └─ NO → Continue
+│
+├─ Did I receive Claude's review on a previous attempt?
+│  ├─ NO → ❌ NEVER use AUTO_ACCEPT=true
+│  └─ YES → Continue
+│
+├─ What was Claude's Status?
+│  ├─ "ISSUES FOUND" → ❌ Fix issues first, retry without AUTO_ACCEPT
+│  ├─ "APPROVED" → Continue
+│  └─ Other/Unknown → ❌ Retry without AUTO_ACCEPT to clarify
+│
+├─ Did I make ANY changes after receiving approval?
+│  ├─ YES → ❌ Need NEW approval, retry without AUTO_ACCEPT
+│  └─ NO → Continue
+│
+├─ Am I using the EXACT same commit message?
+│  ├─ NO → ❌ NEVER use AUTO_ACCEPT=true
+│  └─ YES → Continue
+│
+└─ ✅ OK to use AUTO_ACCEPT=true
+```
+
+## 📊 AUTO_ACCEPT Validation Checklist
+
+Before using `AUTO_ACCEPT=true`, verify ALL of these:
+
+- [ ] This is NOT my first commit attempt
+- [ ] I received "APPROVED" status from Claude on previous attempt
+- [ ] I made ZERO changes to any files since approval
+- [ ] I did NOT stage/unstage any files since approval
+- [ ] I am using the EXACT same commit message
+- [ ] The previous commit attempt failed ONLY due to manual user cancellation (y/n prompt)
+
+**If ALL boxes are checked:** ✅ Use `AUTO_ACCEPT=true`
+
+**If ANY box is unchecked:** ❌ Do NOT use `AUTO_ACCEPT=true`
+
+## 🛡️ Understanding Violations
+
+When you see "AUTO_ACCEPT VIOLATION DETECTED":
+
+### What It Means
+- You used `AUTO_ACCEPT=true` incorrectly
+- The hook blocked the commit to protect code quality
+- Your violation was logged to `_logs/commit-bypasses.log`
+
+### What To Do
+1. **Read the violation details** - Understand which rule you broke
+2. **Stop using AUTO_ACCEPT** - Remove it from your next attempt
+3. **Go through normal flow** - Start fresh without AUTO_ACCEPT
+4. **Only use AUTO_ACCEPT after approval** - Follow the decision tree
+
+### What NOT To Do
+- ❌ Retry with AUTO_ACCEPT again (will fail identically)
+- ❌ Use `--no-verify` to bypass the hook (forbidden)
+- ❌ Try to "trick" the validation (hash-based, won't work)
+- ❌ Ignore the violation message (provides critical guidance)
+
+## 🎯 Common Misconceptions
+
+### Misconception 1: "AUTO_ACCEPT skips the review"
+**Truth**: AUTO_ACCEPT skips the **interactive prompt**, not the review validation. The hook still validates that:
+- You already got approval
+- Content matches approved version
+- File count hasn't changed
+
+### Misconception 2: "I can use AUTO_ACCEPT to save time"
+**Truth**: AUTO_ACCEPT only works AFTER going through the full review once. You can't skip the initial review.
+
+### Misconception 3: "If commit fails, retry with AUTO_ACCEPT"
+**Truth**: If a commit fails, you should NEVER retry with AUTO_ACCEPT. Fix the issue and retry WITHOUT it.
+
+### Misconception 4: "AUTO_ACCEPT means autonomous mode"
+**Truth**: Autonomous mode can use AUTO_ACCEPT, but ONLY after receiving approval. It's not a bypass for autonomous execution.
+
+## 🔐 Security & Quality Guarantees
+
+The AUTO_ACCEPT validation system ensures:
+
+1. **All code is reviewed** - Cannot commit without Claude's approval
+2. **No content changes after approval** - Hash validation prevents modifications
+3. **Clear audit trail** - All violations logged for human review
+4. **Self-correcting** - Clear error messages guide proper usage
+5. **Non-bypassable** - Cannot use `--no-verify` (forbidden)
+
+## 📝 Summary: The One Rule
+
+**NEVER use `AUTO_ACCEPT=true` unless you have ALREADY received "APPROVED" status from Claude for this EXACT content in a previous commit attempt that you chose to cancel.**
+
+That's it. If unsure, don't use AUTO_ACCEPT.
+
+---
+
+**This rule file has maximum priority and always applies. Violations will be blocked and logged.**

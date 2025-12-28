@@ -1,0 +1,175 @@
+#!/bin/bash
+
+# Post-commit hook to log all commits and detect --no-verify usage
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+LOG_FILE="_logs/all-commits.log"
+BYPASS_LOG="_logs/commit-bypasses.log"
+MARKER_FILE="_logs/.pre-commit-ran"
+LOG_LOCK="_logs/.log-write.lock"
+SESSION_FILE=".git/hooks/commit-session.json"
+SESSION_LOCK=".git/hooks/commit-session.lock"
+
+# Marker file signature for validation (prevents manual marker creation)
+MARKER_SIGNATURE="pre-commit-hook-v1"
+
+# Ensure logs directory exists
+mkdir -p _logs
+
+# ============================================================================
+# FILE LOCKING HELPERS
+# ============================================================================
+
+# Acquire exclusive lock on log files
+acquire_log_lock() {
+    exec 202>"$LOG_LOCK"
+    flock -x 202
+}
+
+# Release log file lock
+release_log_lock() {
+    flock -u 202 2>/dev/null || true
+}
+
+# Acquire exclusive lock on session file
+acquire_session_lock() {
+    exec 200>"$SESSION_LOCK"
+    flock -x 200
+}
+
+# Release session file lock
+release_session_lock() {
+    flock -u 200 2>/dev/null || true
+}
+
+# ============================================================================
+# GATHER COMMIT INFORMATION
+# ============================================================================
+
+COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null)
+if [ -z "$COMMIT_HASH" ]; then
+    echo "ERROR: Failed to get commit hash" >&2
+    exit 1
+fi
+
+# Validate commit hash format
+if ! echo "$COMMIT_HASH" | grep -qE '^[0-9a-f]{40}$'; then
+    echo "ERROR: Invalid commit hash: $COMMIT_HASH" >&2
+    COMMIT_HASH="<invalid-hash>"
+fi
+
+COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "<error retrieving message>")
+COMMIT_AUTHOR=$(git log -1 --pretty=%an 2>/dev/null || echo "<unknown>")
+COMMIT_EMAIL=$(git log -1 --pretty=%ae 2>/dev/null || echo "<unknown>")
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+FILES_CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null | wc -l | tr -d ' ')
+
+# Validate FILES_CHANGED
+if [ -z "$FILES_CHANGED" ] || [ "$FILES_CHANGED" = "0" ]; then
+    FILES_CHANGED="<error>"
+fi
+
+# ============================================================================
+# CHECK IF PRE-COMMIT HOOK RAN
+# ============================================================================
+
+# Validate marker file: must exist AND contain correct signature
+MARKER_VALID="false"
+if [ -f "$MARKER_FILE" ]; then
+    # Check if marker contains valid signature (prevents manual marker creation)
+    if grep -qF "$MARKER_SIGNATURE" "$MARKER_FILE" 2>/dev/null; then
+        MARKER_VALID="true"
+    fi
+fi
+
+# Acquire log lock before writing
+acquire_log_lock
+
+if [ "$MARKER_VALID" = "true" ]; then
+    # Pre-commit hook ran normally
+    echo "[$TIMESTAMP] ✅ COMMIT: $COMMIT_HASH | Files: $FILES_CHANGED | $COMMIT_MSG" >> "$LOG_FILE"
+
+    # Clean up marker
+    rm -f "$MARKER_FILE"
+
+else
+    # Pre-commit hook was bypassed (--no-verify used) or marker was invalid
+    echo "[$TIMESTAMP] ⚠️  COMMIT: $COMMIT_HASH | Files: $FILES_CHANGED | BYPASSED PRE-COMMIT | $COMMIT_MSG" >> "$LOG_FILE"
+
+    # Log detailed violation information
+    {
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "PRE-COMMIT HOOK BYPASSED"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "Timestamp:       $TIMESTAMP"
+        echo "Commit Hash:     $COMMIT_HASH"
+        echo "Author:          $COMMIT_AUTHOR <$COMMIT_EMAIL>"
+        echo "Files Changed:   $FILES_CHANGED"
+        echo "Commit Message:  $COMMIT_MSG"
+        echo ""
+        echo "Details:"
+        if [ -f "$MARKER_FILE" ]; then
+            echo "  Marker file exists but has invalid signature (possible tampering)"
+        else
+            echo "  This commit was created with --no-verify or -n flag"
+        fi
+        echo "  Pre-commit hook (Claude code review) was not executed"
+        echo ""
+        echo "Files Modified:"
+        git diff-tree --no-commit-id --name-only -r HEAD | sed 's/^/  - /'
+        echo ""
+        echo "═══════════════════════════════════════════════════════════════"
+        echo ""
+    } >> "$BYPASS_LOG"
+
+    # Clean up invalid marker if it exists
+    rm -f "$MARKER_FILE"
+fi
+
+# Release log lock
+release_log_lock
+
+# ============================================================================
+# CLEANUP
+# ============================================================================
+
+# Clean up session file only if it belongs to this commit
+# This prevents race conditions with concurrent commits in worktrees
+acquire_session_lock
+
+if [ -f "$SESSION_FILE" ]; then
+    # Check if session file is stale (older than 1 hour) or belongs to this commit context
+    SESSION_TIMESTAMP=""
+    if command -v jq &>/dev/null; then
+        SESSION_TIMESTAMP=$(jq -r '.timestamp // ""' "$SESSION_FILE" 2>/dev/null)
+    else
+        SESSION_TIMESTAMP=$(grep -oP '"timestamp":\s*"\K[^"]+' "$SESSION_FILE" 2>/dev/null)
+    fi
+
+    # Calculate session age in seconds
+    SESSION_AGE=0
+    if [ -n "$SESSION_TIMESTAMP" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS date parsing
+            SESSION_EPOCH=$(date -j -f "%Y-%m-%d %H:%M:%S" "$SESSION_TIMESTAMP" +%s 2>/dev/null || echo "0")
+        else
+            # Linux date parsing
+            SESSION_EPOCH=$(date -d "$SESSION_TIMESTAMP" +%s 2>/dev/null || echo "0")
+        fi
+        NOW_EPOCH=$(date +%s)
+        SESSION_AGE=$((NOW_EPOCH - SESSION_EPOCH))
+    fi
+
+    # Only delete if session is older than 1 hour (3600 seconds) or file is unreadable
+    # This prevents deleting a session file that might be in use by a concurrent commit
+    if [ "$SESSION_AGE" -gt 3600 ] || [ "$SESSION_AGE" -eq 0 ]; then
+        rm -f "$SESSION_FILE"
+    fi
+fi
+
+release_session_lock
+
+exit 0

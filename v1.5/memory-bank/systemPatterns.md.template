@@ -1,0 +1,93 @@
+# System Patterns: [PROJECT NAME]
+
+**Last Updated**: [DATE]
+
+## Architecture Overview
+
+### System Design
+[High-level description of architecture]
+
+```
+[ASCII diagram or description of major components]
+
+Example:
+┌─────────────┐     ┌──────────────┐     ┌──────────┐
+│   Frontend  │────▶│   API Layer  │────▶│ Database │
+└─────────────┘     └──────────────┘     └──────────┘
+```
+
+### Module Structure
+```
+src/
+├── components/     # UI components
+├── services/       # Business logic
+├── api/            # API layer
+├── utils/          # Utilities
+└── types/          # Type definitions
+```
+
+---
+
+## Design Patterns
+
+### Pattern 1: [Pattern Name]
+**When to use**: [Description]
+**Example**:
+```typescript
+// Code example
+```
+
+### Pattern 2: [Pattern Name]
+**When to use**: [Description]
+**Example**:
+```typescript
+// Code example
+```
+
+---
+
+## Key Invariants
+
+### Invariant 1
+[Description of what must always be true]
+
+### Invariant 2
+[Description of what must always be true]
+
+---
+
+## Data Flow
+
+### Request/Response Cycle
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+### State Management
+[How state is managed across the application]
+
+---
+
+## Integration Points
+
+### External Service 1
+- **Purpose**: [What it does]
+- **How we use it**: [Integration details]
+- **Failure handling**: [What happens if it fails]
+
+### External Service 2
+- **Purpose**: [What it does]
+- **How we use it**: [Integration details]
+
+---
+
+## Performance Considerations
+
+### Optimization Strategy
+[How we handle performance]
+
+### Caching Strategy
+[What we cache and why]
+
+### Scaling Approach
+[How the system scales]

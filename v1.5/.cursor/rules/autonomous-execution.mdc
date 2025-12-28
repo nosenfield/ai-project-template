@@ -1,0 +1,964 @@
+---
+description: Autonomous execution mode for zero-to-one development
+alwaysApply: false
+---
+
+# Autonomous Execution Mode
+
+## Purpose
+
+This file defines rules for autonomous batch execution of development tasks, enabling the agent to complete entire phases without user intervention between tasks. This mode is activated by commands like `/one-shot` and `/batch`.
+
+---
+
+## Execution Modes
+
+### Manual Mode (Default)
+- Agent waits for approval after each task
+- User reviews plans before implementation
+- Explicit commit approval required
+- Activated by: `/plan`, `/implement`, individual task commands
+
+### Autonomous Mode
+- Agent executes multiple tasks sequentially
+- Plans are created silently (not shown to user)
+- Commits proceed through approval workflow automatically
+- Only stops for errors, failures, or phase completion
+- Activated by: `/one-shot Phase N`, `/batch [tasks]`
+
+---
+
+## Autonomous Mode Behavior
+
+### Core Principle
+**In autonomous mode, the agent operates continuously without user intervention EXCEPT for errors, failures, or explicit ambiguities.**
+
+### When to Pause in Autonomous Mode
+
+**MUST PAUSE for:**
+- Test failures after 3 retry attempts
+- Task requirements are ambiguous or unclear
+- Pre-commit hook failures (non-review errors like linting, type errors)
+- Critical errors that cannot be auto-resolved
+- Phase completion (for summary and review)
+
+**DO NOT PAUSE for:**
+- Task completion (continue to next task immediately)
+- Successful commits (continue to next task immediately)
+- Memory bank updates (do automatically)
+- Task tracker updates (do automatically)
+- Claude code review iterations (handle automatically via approval workflow)
+
+### Task Execution Flow in Autonomous Mode
+
+```
+For each task in queue:
+  1. Read context (memory-bank, task details, rules)
+  2. ASSESS: Are affected files known?
+     → NO: Delegate to EXPLORER subagent, receive summary
+     → YES: Continue
+  3. Plan implementation (SILENTLY - do not show to user)
+  4. ASSESS: Is implementation >50 lines OR >3 files?
+     → YES: Delegate to IMPLEMENTER subagent, receive summary
+     → NO: Execute directly (steps 5-6)
+  5. Write tests first (TDD) [if not delegated]
+  6. Implement to pass tests [if not delegated]
+  7. Run tests (retry up to 3 times if failures)
+  8. Update documentation (memory bank, task tracker)
+  9. Commit via approval workflow (see below)
+  10. IMMEDIATELY continue to next task (DO NOT PAUSE)
+
+After all tasks complete:
+  11. Update memory bank (if phase complete or 90% context)
+  12. Update task tracker
+  13. Generate phase summary (if phase complete)
+  14. Report completion and pause
+```
+
+---
+
+## Subagent Delegation in Autonomous Mode (V1.5)
+
+### Purpose
+
+Subagent delegation prevents context ballooning during multi-task autonomous execution. Each subagent operates in an isolated context window, returning concise summaries to preserve orchestrator context.
+
+### Delegation Decision Points
+
+**Before Planning (Step 2):**
+```
+IF affected files are unknown OR task spans multiple modules:
+  → Delegate to EXPLORER subagent
+  → Receive exploration summary (1-2K tokens)
+  → Use summary for planning (do NOT re-read explored files)
+```
+
+**Before Implementation (Step 4):**
+```
+IF implementation exceeds 50 lines OR spans 3+ files:
+  → Delegate to IMPLEMENTER subagent
+  → Provide: task requirements, exploration summary, file paths
+  → Receive implementation summary (2-3K tokens)
+  → Verify status: COMPLETE, PARTIAL, or FAILED
+  → If COMPLETE: proceed to commit workflow
+  → If FAILED: halt and report to user
+```
+
+### Explorer Delegation Format
+
+```markdown
+**Exploration Request**
+
+Target: [feature/system/pattern to explore]
+Depth: medium
+
+Context:
+- Task: [task-id]
+- Purpose: Planning for autonomous implementation
+
+Questions to Answer:
+- What files need to be modified?
+- What patterns should be followed?
+- What dependencies exist?
+```
+
+### Implementer Delegation Format
+
+```markdown
+**Implementation Request**
+
+Task: [task-id] - [description]
+
+Requirements:
+- [From task definition]
+
+Exploration Summary:
+[Paste explorer's summary]
+
+Files to Modify:
+- [List from exploration]
+
+Constraints:
+- Follow TDD
+- Stay within task scope
+- Do NOT commit
+```
+
+### Handling Subagent Results
+
+**Explorer Returns:**
+- File paths and descriptions
+- Patterns observed
+- Dependencies noted
+- Risks identified
+
+**Action:** Use for planning, do NOT re-read files
+
+**Implementer Returns:**
+- Status: COMPLETE / PARTIAL / FAILED
+- Files changed with descriptions
+- Test results
+- Ready for commit: YES / NO
+
+**Action:**
+- If COMPLETE + Ready: Proceed to commit workflow
+- If PARTIAL: Review notes, decide to continue or halt
+- If FAILED: Halt autonomous execution, report to user
+
+### Context Budget Enforcement
+
+| Metric | Target | Action if Exceeded |
+|--------|--------|-------------------|
+| Orchestrator context | <50% | Delegate more aggressively |
+| Task summaries retained | <10K tokens | Compact older task summaries |
+| Exploration summaries | 1-2K each | Enforce in explorer prompt |
+| Implementation summaries | 2-3K each | Enforce in implementer prompt |
+
+### Delegation Does NOT Change
+
+- Commit approval workflow (orchestrator handles)
+- AUTO_ACCEPT rules (unchanged)
+- Pre-commit hook behavior (unchanged)
+- Memory bank update triggers (unchanged)
+- Phase completion procedures (unchanged)
+
+---
+
+## Commit Approval Workflow
+
+### Overview
+
+All commits go through the pre-commit hook which triggers Claude code review. The hook is interactive and will always block the first commit attempt, returning control to the Cursor agent for review and iteration.
+
+### Claude Review Context (What Gets Sent)
+
+The pre-commit hook sends a selective set of context files to Claude for an informed but unbiased review:
+
+**Essential Context (always included):**
+- `_docs/architecture.md` - Technical architecture and patterns
+- `_docs/best-practices.md` - Project coding standards
+- `.cursor/rules/base.mdc` - Core development principles
+
+**Conditional Context (included if relevant):**
+- `memory-bank/activeContext.md` - If changes relate to current work focus
+- `memory-bank/systemPatterns.md` - If changes involve architectural modifications
+
+**Task Context:**
+- If commit message contains `Task: X.Y`, that task's context is included
+
+**Excluded (to avoid bias):**
+- `memory-bank/progress.md` - Avoids completion pressure bias
+- `_docs/task-list.md` - Avoids scope creep suggestions
+- Personal notes or summaries
+
+This selective approach ensures Claude has enough context to provide informed feedback without being biased toward completion or scope expansion.
+
+### The Approval Cycle
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Agent: git commit -m "message"                          │
+│ ↓                                                        │
+│ Pre-commit Hook: Triggers Claude review (INTERACTIVE)   │
+│ ↓                                                        │
+│ Claude: Reviews code, provides feedback                 │
+│ ↓                                                        │
+│ Hook: Prompts user (y/n/v) - BLOCKS execution          │
+│ ↓                                                        │
+│ Returns to Agent with review feedback                   │
+│ ↓                                                        │
+│ Agent: Analyzes Claude's review                         │
+│ ↓                                                        │
+│ IF: Approval + no changes needed                        │
+│   → Agent: git commit -m "same message"                 │
+│         with AUTO_ACCEPT=true                           │
+│   → Commit succeeds ✅                                   │
+│                                                          │
+│ IF: Approval + recommendations                          │
+│   → Agent: Decides if recommendations are significant   │
+│   → IF significant: implement → REPEAT cycle            │
+│   → IF not significant: AUTO_ACCEPT=true → Commit ✅    │
+│                                                          │
+│ IF: Issues found (bugs, security, etc.)                │
+│   → Agent: Fix issues → REPEAT cycle                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Commit Approval Decision Logic
+
+When Claude provides review feedback, the agent must:
+
+#### **Scenario 1: Approval with "No Issues" or "Ready to Commit"**
+```
+Claude says: "✅ APPROVED - Code looks good, no issues found"
+
+Agent action:
+→ IMMEDIATELY resubmit with AUTO_ACCEPT=true
+→ Use EXACT same commit message
+→ DO NOT make any changes
+```
+
+#### **Scenario 2: Approval with Non-Blocking Recommendations**
+```
+Claude says: "✅ APPROVED - Consider adding JSDoc comments for public methods"
+
+Agent decision tree:
+1. Are recommendations significant (improve quality/security/performance)?
+   YES → Implement recommendations → Request NEW approval
+   NO → Proceed with AUTO_ACCEPT=true
+
+2. Are recommendations in scope for this task?
+   YES → Consider implementing
+   NO → Defer (can be separate task)
+
+3. Is there clear reason to defer?
+   YES → Proceed with AUTO_ACCEPT=true
+   NO → Implement if significant
+```
+
+#### **Scenario 3: Issues Found (Bugs, Security, Critical)**
+```
+Claude says: "❌ ISSUES FOUND - SQL injection vulnerability in line 42"
+
+Agent action:
+→ Fix ALL critical issues
+→ Request NEW approval (DO NOT use AUTO_ACCEPT)
+→ REPEAT approval cycle
+```
+
+#### **Scenario 4: Pre-commit Hook Failure (Non-Review)**
+```
+Pre-commit hook fails with: "ESLint error: Unused variable 'foo'"
+
+Agent action:
+→ STOP autonomous execution
+→ Report error to user
+→ Wait for manual intervention
+→ DO NOT attempt AUTO_ACCEPT
+```
+
+### AUTO_ACCEPT Usage Rules
+
+#### **ALLOWED to use AUTO_ACCEPT=true when:**
+✅ Claude explicitly approved the commit
+✅ No changes made since approval
+✅ Resubmitting EXACT same commit message
+✅ Agent chose to defer non-blocking recommendations
+
+#### **FORBIDDEN to use AUTO_ACCEPT=true when:**
+❌ No approval received yet
+❌ Any changes made after approval (even minor)
+❌ Pre-commit hook failed for non-review reasons
+❌ Attempting to bypass review process
+❌ Using `-n` or `--no-verify` flags (NEVER allowed)
+
+### Standardized Claude Review Response Format
+
+The pre-commit hook requests Claude to provide reviews in a standardized format. The agent should parse this structured response to make decisions.
+
+**Expected Format:**
+```markdown
+## CODE REVIEW RESULT
+
+**Status**: [APPROVED / ISSUES FOUND]
+
+### Critical Issues
+[None / List of critical issues]
+
+### Non-Blocking Recommendations
+[None / List of recommendations]
+
+### Decision Summary
+[APPROVED] - Ready to commit [with/without recommendations]
+[ISSUES FOUND] - Must fix critical issues before commit
+```
+
+### Parsing Claude's Response
+
+**Step 1: Extract Status**
+
+Look for the line: `**Status**: [value]`
+
+- If `APPROVED` → Approval received
+- If `ISSUES FOUND` → Critical issues present
+
+**Step 2: Parse Critical Issues**
+
+Check the "Critical Issues" section:
+- If says "None" → No critical issues
+- If lists issues → Parse each issue (severity, location, description, fix)
+
+**Step 3: Parse Non-Blocking Recommendations**
+
+Check the "Non-Blocking Recommendations" section:
+- If says "None" → No recommendations
+- If lists recommendations → Parse each (type, suggestion, rationale)
+
+**Step 4: Make Decision**
+
+Based on parsed data:
+
+```
+IF Status = "APPROVED" AND Critical Issues = "None"
+  → Check Non-Blocking Recommendations
+    → IF "None": Use AUTO_ACCEPT=true immediately
+    → IF present: Evaluate significance
+      → IF significant AND in-scope: Implement → New approval
+      → IF not significant OR out-of-scope: Use AUTO_ACCEPT=true
+
+IF Status = "ISSUES FOUND"
+  → Fix all critical issues
+  → Request NEW approval
+  → DO NOT use AUTO_ACCEPT
+```
+
+### Detecting Commit Approval (Legacy Format)
+
+If Claude does not use the standardized format (fallback), look for these signals:
+
+**Approval Indicators:**
+- "APPROVED" (case-insensitive)
+- "Ready to commit"
+- "No issues found"
+- "LGTM" (Looks Good To Me)
+- "Looks good"
+
+**NOT Approval:**
+- "Consider..."
+- "Suggest..."
+- "Could improve..."
+- "Minor issue..." (WITHOUT explicit approval)
+
+**Issues Found (NOT Approval):**
+- "ISSUES FOUND"
+- "Must fix", "Should fix", "Required"
+- "Security vulnerability"
+- "Bug", "Error", "Problem" (in context of critical issues)
+
+### Example Approval Flow with Standardized Format
+
+**Iteration 1: Issues Found**
+```bash
+$ git commit -m "feat: implement user authentication"
+```
+
+Claude responds:
+```markdown
+## CODE REVIEW RESULT
+
+**Status**: ISSUES FOUND
+
+### Critical Issues
+- Severity: HIGH
+  Location: src/auth/login.ts:42
+  Description: SQL injection vulnerability in login query
+  Fix: Use parameterized queries instead of string concatenation
+
+### Non-Blocking Recommendations
+- Type: Quality
+  Suggestion: Add JSDoc comments for public API functions
+  Rationale: Improves maintainability and IDE autocomplete
+
+### Decision Summary
+[ISSUES FOUND] - Must fix critical issues before commit
+```
+
+Agent action:
+- Parses: Status = "ISSUES FOUND"
+- Sees critical issue: SQL injection
+- Fixes SQL injection vulnerability
+- Requests NEW approval (no AUTO_ACCEPT)
+
+**Iteration 2: Approval with Recommendations**
+```bash
+$ git commit -m "feat: implement user authentication"
+```
+
+Claude responds:
+```markdown
+## CODE REVIEW RESULT
+
+**Status**: APPROVED
+
+### Critical Issues
+None
+
+### Non-Blocking Recommendations
+- Type: Security
+  Suggestion: Add rate limiting to login endpoint
+  Rationale: Prevents brute force attacks
+
+- Type: Documentation
+  Suggestion: Add JSDoc comments for authentication functions
+  Rationale: Improves code maintainability
+
+### Decision Summary
+[APPROVED] - Ready to commit with recommendations
+```
+
+Agent action:
+- Parses: Status = "APPROVED", Critical Issues = "None"
+- Evaluates recommendations:
+  - Rate limiting: Significant security improvement → Implement
+  - JSDoc: Quality improvement but not critical → Defer
+- Implements rate limiting
+- Requests NEW approval (changes made after approval)
+
+**Iteration 3: Approval without Issues**
+```bash
+$ git commit -m "feat: implement user authentication"
+```
+
+Claude responds:
+```markdown
+## CODE REVIEW RESULT
+
+**Status**: APPROVED
+
+### Critical Issues
+None
+
+### Non-Blocking Recommendations
+None
+
+### Decision Summary
+[APPROVED] - Ready to commit
+```
+
+Agent action:
+- Parses: Status = "APPROVED", Critical Issues = "None", Recommendations = "None"
+- No changes needed
+- Uses AUTO_ACCEPT=true immediately
+
+**Final Commit:**
+```bash
+$ AUTO_ACCEPT=true git commit -m "feat: implement user authentication"
+# Bypasses interactive prompt → Commit succeeds ✅
+```
+
+### Handling AUTO_ACCEPT Violations
+
+If the agent incorrectly uses `AUTO_ACCEPT=true`, the pre-commit hook will:
+1. **Detect the violation** (wrong usage scenario)
+2. **Log it** to `_logs/commit-violations.log` for human review
+3. **Block the commit** with clear instructions
+4. **Guide the agent** to retry without AUTO_ACCEPT
+
+**Violation Types:**
+- `AUTO_ACCEPT_ON_FIRST_ATTEMPT`: Used on first commit without prior approval
+- `AUTO_ACCEPT_WITHOUT_APPROVAL`: Used when previous status was not APPROVED
+- `AUTO_ACCEPT_WITH_MODIFIED_CONTENT`: Used after changing files post-approval
+- `AUTO_ACCEPT_FILE_COUNT_MISMATCH`: Used after adding/removing files post-approval
+
+**Agent Response to Violation:**
+
+When commit fails with "AUTO_ACCEPT VIOLATION DETECTED":
+
+```bash
+# Commit attempt failed
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+⚠️  AUTO_ACCEPT VIOLATION DETECTED
+
+Violation: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+Details: AUTO_ACCEPT=true used on first commit attempt without prior approval
+
+This attempt has been logged to: _logs/commit-violations.log
+
+📋 ACTION REQUIRED:
+Retry the commit WITHOUT AUTO_ACCEPT=true:
+
+  git commit -m "feat: add auth"
+
+# Exit code: 1 (failure)
+```
+
+**Agent MUST:**
+1. **Recognize** the violation (check exit code and output)
+2. **Retry** WITHOUT `AUTO_ACCEPT=true`
+3. **Go through** normal Claude review cycle
+4. **Use** `AUTO_ACCEPT=true` only after receiving approval
+
+**Example Self-Correction:**
+
+```bash
+# Attempt 1 (WRONG)
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# ❌ Violation detected
+
+# Attempt 2 (CORRECT - retry without AUTO_ACCEPT)
+$ git commit -m "feat: add auth"
+# Claude reviews → APPROVED
+
+# Attempt 3 (NOW VALID)
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# ✅ Succeeds
+```
+
+**Viewing Violations:**
+
+To see logged violations:
+```bash
+cat _logs/commit-violations.log
+
+# Or use the helper script
+./_logs/show-violations.sh
+```
+
+**Important:**
+- Violations are **logged** (not silently ignored)
+- Violations **block the commit** (prevent bad behavior)
+- Violations **guide the agent** (provide clear next steps)
+- Violations are **human-auditable** (track patterns over time)
+
+---
+
+## Context Window Management
+
+### Monitoring Context Usage
+
+The agent should track token usage throughout execution. When context reaches **90% capacity**:
+
+1. **Pause current task** (finish current operation, don't start new tests/implementation)
+2. **Update memory bank** with all recent work
+3. **Compact context** using progressive reduction (see below)
+4. **Resume current task** from where it paused
+
+### Progressive Context Reduction
+
+When compacting at 90% capacity, remove in this priority order:
+
+#### **Priority 1: Remove Code Snippets**
+- Remove large code blocks from earlier tasks
+- Keep only file paths and brief descriptions
+- Preserve error messages and critical details
+
+#### **Priority 2: Remove Old Task Details**
+- Summarize completed tasks (keep only: task ID, status, commit hash)
+- Remove implementation details from tasks >2 tasks ago
+- Keep current task details intact
+
+#### **Priority 3: Remove Conditional Docs**
+- Remove conditional context (if it was included):
+  - Recent commit history (if >5 commits loaded)
+  - systemPatterns.md (if no architectural changes in progress)
+- Keep essential context:
+  - activeContext.md (always keep)
+  - Current task details (always keep)
+  - Architecture.md relevant sections (always keep)
+
+#### **Priority 4: Summarize Memory Bank Entries**
+- Create inline summary of older memory bank entries
+- Keep most recent "Recent Changes" in activeContext.md
+- Remove older "Recent Changes" entries (>1 week old)
+
+### Context Compaction Example
+
+**Before (90% capacity):**
+```
+Memory Bank: Full activeContext.md, progress.md, systemPatterns.md
+Task 1.1: Full implementation details, test code, review iterations
+Task 1.2: Full implementation details, test code, review iterations
+Task 1.3: [CURRENT] Full details
+Architecture: 3 full sections loaded
+Commit History: Last 10 commits with diffs
+```
+
+**After (reduced to ~60% capacity):**
+```
+Memory Bank: activeContext.md, progress.md summary
+Task 1.1: ✅ Complete - Commit abc123 - DynamoDB client implemented
+Task 1.2: ✅ Complete - Commit def456 - Retry logic implemented
+Task 1.3: [CURRENT] Full details (preserved)
+Architecture: Current relevant section only
+Commit History: Removed
+```
+
+---
+
+## Task Tracker Status Management
+
+### Five-State System
+
+Autonomous mode uses these task states:
+
+- `[ ]` **Not Started** - Task not yet begun
+- `[>]` **In Progress** - Task currently being worked on
+- `[x]` **Completed** - Task finished successfully
+- `[~]` **Skipped** - Task deferred or not needed
+- `[!]` **Failed** - Task failed after 3 retry attempts
+
+### State Transitions in Autonomous Mode
+
+```
+[ ] → [>] : Start task
+[>] → [x] : Tests pass, commit successful
+[>] → [!] : 3 retry attempts exhausted
+[!] → [>] : User fixes issue, agent retries (manual restart)
+[ ] → [~] : User requests skip, or task no longer needed
+```
+
+### Handling Failed Tasks `[!]`
+
+When a task reaches `[!]` status:
+
+1. **Document failure** in memory-bank/progress.md:
+   - Error details
+   - What was attempted
+   - Why retries failed
+   - Recommended fix
+
+2. **Update task tracker**:
+   - Mark task as `[!]`
+   - Add failure note in completion log
+
+3. **HALT execution**:
+   - Stop autonomous mode
+   - Report failure to user
+   - List remaining tasks
+
+4. **Recovery** (when user reruns `/one-shot` or `/batch`):
+   - Agent can retry `[!]` tasks automatically
+   - Starts fresh (not from saved state)
+   - If fails again → mark `[!]` again and halt
+
+---
+
+## Phase Completion Procedures
+
+When all tasks in a phase are complete:
+
+### 1. Update Memory Bank
+- Full update of memory-bank/activeContext.md
+- Full update of memory-bank/progress.md
+- Update memory-bank/systemPatterns.md if architecture changed
+- Mark phase complete
+
+### 2. Update Task Tracker
+- Mark all phase tasks as `[x]`
+- Update phase progress to 100%
+- Update overall progress percentage
+- Add completion log entry with date
+
+### 3. Generate Phase Summary
+- Create summary in `_context-summaries/[DATE]-phase-[N]-[name].md`
+- Use format from example: `@_context-summaries/2025-11-11-phase1-services-implementation.md`
+- Include:
+  - Tasks completed
+  - Files changed
+  - Key decisions with rationale
+  - Non-obvious solutions (if any)
+  - Testing approach
+  - Blockers resolved
+  - Next steps
+
+### 4. Report Completion
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE [N] COMPLETED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tasks: [M]/[M] completed successfully
+Commits: [M] commits created
+Files: [X] files changed
+Tests: All passing
+
+Phase Summary: _context-summaries/[DATE]-phase-[N]-[name].md
+
+Next Phase: Phase [N+1] - [Name]
+
+Ready for user review.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+## Error Handling in Autonomous Mode
+
+### Retry Strategy
+
+**Test Failures:**
+- Attempt 1: Run tests, analyze failures
+- Attempt 2: Fix issues, rerun tests
+- Attempt 3: Fix remaining issues, rerun tests
+- After 3 attempts: Mark as `[!]`, halt execution
+
+**Pre-commit Hook Failures (Non-Review):**
+- Do NOT retry automatically
+- Report error to user
+- HALT execution
+- Wait for manual intervention
+
+**Claude Review Iterations:**
+- No retry limit (not a "failure")
+- Continue until approval or critical issue
+- Implement fixes as needed
+- Request new approval after changes
+
+### Halting Conditions
+
+**MUST HALT autonomous execution when:**
+- Task fails after 3 retry attempts
+- Pre-commit hook failure (linting, type errors)
+- Requirements are ambiguous/unclear
+- Critical error that cannot be auto-resolved
+- Phase completion (for review)
+
+**DO NOT HALT for:**
+- Successful task completion
+- Claude review iterations
+- Memory bank updates
+- Minor warnings in tests/linting (if they pass)
+
+---
+
+## Inter-Task Validation
+
+Before proceeding to next task in autonomous mode, verify:
+
+- [ ] All tests passing (including previously passing tests)
+- [ ] No uncommitted changes (commit successful)
+- [ ] Memory bank updated (if needed)
+- [ ] Task tracker updated
+- [ ] Git working directory clean
+- [ ] No blocking errors in logs
+
+### ⚠️ CRITICAL: Commit Approval State Reset
+
+**Each new task starts with NO approval.**
+
+When moving from one task to the next:
+- ❌ **NEVER** use `AUTO_ACCEPT=true` on the first commit attempt of a new task
+- ❌ **NEVER** carry forward approval from previous task
+- ✅ **ALWAYS** go through full Claude review cycle for the first commit of each task
+- ✅ **ONLY** use `AUTO_ACCEPT=true` after receiving approval for THIS specific task's commit
+
+**Correct Flow Between Tasks:**
+```bash
+# Task 1: Completed with AUTO_ACCEPT=true after approval ✅
+
+# Moving to Task 2...
+# Approval state: RESET → NO APPROVAL
+
+# Task 2: First commit attempt
+git commit -m "feat: task 2"  # ✅ CORRECT - goes through Claude review
+
+# DO NOT DO THIS:
+AUTO_ACCEPT=true git commit -m "feat: task 2"  # ❌ WRONG - skips required review
+```
+
+### 🔥 CRITICAL: Handling AUTO_ACCEPT Violations
+
+**If you receive an AUTO_ACCEPT violation error:**
+
+```bash
+⚠️  AUTO_ACCEPT VIOLATION DETECTED
+Violation: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+```
+
+**YOU MUST:**
+
+1. **IMMEDIATELY STOP using AUTO_ACCEPT** on the next retry
+2. **Retry the commit WITHOUT AUTO_ACCEPT**:
+   ```bash
+   git commit -m "exact same message"
+   ```
+3. **Go through normal Claude review**
+4. **ONLY use AUTO_ACCEPT after receiving "APPROVED" status**
+
+**NEVER:**
+- ❌ Retry with AUTO_ACCEPT=true again (will fail identically)
+- ❌ Try AUTO_ACCEPT multiple times hoping it works
+- ❌ Use --no-verify to bypass (absolutely forbidden)
+
+**Self-Correction Pattern:**
+```bash
+# ❌ Violation occurs
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# Error: AUTO_ACCEPT_ON_FIRST_ATTEMPT
+
+# ✅ Correct response: Drop AUTO_ACCEPT
+$ git commit -m "feat: add auth"
+# Claude reviews... → "APPROVED"
+
+# ✅ NOW use AUTO_ACCEPT
+$ AUTO_ACCEPT=true git commit -m "feat: add auth"
+# Success
+```
+
+If ANY validation fails:
+→ HALT execution
+→ Report issue to user
+→ Wait for resolution
+
+---
+
+## Communication in Autonomous Mode
+
+### Progress Reporting
+
+Show concise progress updates during execution:
+
+```
+Starting Task [N] of [M]: [task-id] - [task-name]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Progress: [N]/[M] tasks ([X]%)
+
+[Brief status updates during implementation]
+
+Task [N] COMPLETED ✅
+Commit: [hash] - [message]
+Files: [count] changed
+Tests: [count] passing
+
+Continuing to next task...
+```
+
+### DO NOT Output in Autonomous Mode:
+- Detailed plans (plan silently)
+- Full code implementations (unless error)
+- Step-by-step reasoning (work silently)
+- Approval requests between tasks
+- Verbose status updates
+
+### DO Output in Autonomous Mode:
+- Task start/completion
+- Progress indicators
+- Error messages
+- Critical decisions
+- Final summary
+
+---
+
+## Rules Summary
+
+### Autonomous Mode Principles
+
+**1. Continuity**
+- Execute tasks continuously without pausing between completions
+- Only stop for errors, ambiguity, or phase completion
+
+**2. Silent Planning**
+- Create plans internally without showing to user
+- Make implementation decisions autonomously
+- Follow established patterns from architecture
+
+**3. Smart Commit Approval**
+- Handle Claude review iterations automatically
+- Implement significant recommendations
+- Use AUTO_ACCEPT=true only after approval with no changes
+- Never bypass review with --no-verify
+
+**4. Context Management**
+- Monitor token usage continuously
+- Compact at 90% capacity
+- Preserve essential context
+
+**5. Error Recovery**
+- Retry tests up to 3 times
+- Halt on non-recoverable errors
+- Document failures clearly
+
+### Forbidden Actions (NEVER in Autonomous or Manual Mode)
+
+❌ Use `git commit -n` or `git commit --no-verify`
+❌ Use `git add .` or `git add -A`
+❌ Use `tail` or `head` commands during commit workflow
+❌ Use `AUTO_ACCEPT=true` without prior approval
+❌ Use `AUTO_ACCEPT=true` after making changes post-approval
+❌ Skip tests to continue execution
+❌ Commit failing code
+❌ Ignore ambiguous requirements
+❌ Continue after 3 failed retry attempts
+❌ Modify files outside task scope
+
+### Safety Guarantees
+
+The autonomous mode maintains these guarantees:
+
+✅ All code reviewed by Claude before commit
+✅ All tests pass before commit
+✅ No secrets or sensitive data committed
+✅ Memory bank stays current
+✅ Clear audit trail (task tracker, commits, summaries)
+✅ Can resume after interruption
+✅ User can intervene at any time
+
+---
+
+## Integration with Commands
+
+### Commands that Activate Autonomous Mode
+
+- `/one-shot Phase N` - Execute all remaining tasks in phase N
+- `/batch [tasks]` - Execute specified tasks autonomously
+
+### Commands that Use Manual Mode
+
+- `/plan` - Plan single task, show to user
+- `/implement` - Implement with approval
+- `/commit-with-approval` - Manual commit approval
+- Individual task commands
+
+---
+
+**Remember**: Autonomous mode is about velocity with safety. The agent moves quickly through tasks but never bypasses quality gates (tests, code review, validation). When in doubt, pause and ask.

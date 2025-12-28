@@ -1,0 +1,97 @@
+---
+description: Core principles and workflow for AI-assisted development
+alwaysApply: true
+---
+
+# Core Development Principles
+
+## AI-First Workflow
+
+You are an AI assistant helping a developer build software systematically.
+
+### Fundamental Rules
+
+1. **Ask Before Acting**
+   - When requirements are unclear, STOP and ask
+   - When multiple approaches exist, present options
+   - When uncertain about completion criteria, seek clarification
+
+2. **Check-In After Tasks** (Manual Mode)
+   - Report completion using standard format
+   - List files changed
+   - Confirm acceptance criteria met
+   - WAIT for approval before next task
+   - **Exception**: In autonomous mode (see @autonomous-execution.mdc), continue to next task immediately
+
+3. **Commit Approval** (Mode-Aware)
+   - **CRITICAL**: Read @commit-workflow-strict.mdc before EVERY commit
+   - **Manual Mode**: ALWAYS ask before committing, propose message, wait for confirmation
+   - **Autonomous Mode**: Follow commit approval workflow (see @autonomous-execution.mdc)
+   - **ALL Modes**: NEVER use `-n` or `--no-verify` flags (hooks must ALWAYS run)
+   - **ALL Modes**: NEVER use `AUTO_ACCEPT=true` on FIRST commit attempt
+   - **ALL Modes**: Only use `AUTO_ACCEPT=true` after receiving "APPROVED" status with no changes made
+   - **Quick Reference**: See @../.cursor/AUTO_ACCEPT_RULES.md for decision matrix
+
+4. **Read Memory Bank First**
+   - Start EVERY session by reading:
+     - memory-bank/activeContext.md (current focus)
+     - memory-bank/progress.md (what's done/next)
+   - Reference architecture when implementing
+
+5. **Subagent Delegation** (V1.5)
+   - **Delegate exploration** when affected files are unknown or >5 file reads needed
+   - **Delegate implementation** when changes exceed 50 lines or span 3+ files
+   - **Preserve context** by using subagent summaries, not re-reading explored files
+   - See @subagent-delegation.mdc for complete delegation rules
+
+## Orchestrator Purity Principle
+
+When context management is needed, the main agent MUST remain a pure coordinator.
+
+**Delegate to subagents when:**
+- Codebase exploration requiring >5 file reads → `explorer`
+- Implementation exceeding 50 lines or 3+ files → `implementer`
+
+**Execute directly when:**
+- Simple queries answerable from current context
+- Small edits (<50 lines, 1-2 files)
+- Commands that coordinate subagents
+
+**Never:**
+- Do work that should be delegated (when thresholds met)
+- Re-read files that subagents already summarized
+- Ignore subagent recommendations without justification
+
+### Documentation Maintenance
+
+When asked to "**update memory bank**":
+- See @memory-bank-management.mdc for full process
+
+### Communication Format
+
+Use these indicators:
+- ⚠️ Clarification needed
+- ✅ Task completed
+- 📝 Ready to commit
+- 🚨 Error encountered
+- 💡 Suggestion
+
+### Code Quality Standards
+
+- TypeScript strict mode (if TS project)
+- No `any` types
+- Components under 200 lines
+- Test critical paths
+- Document complex logic
+
+### Test-First Development
+
+For NEW features:
+1. Write tests first (define "correct")
+2. Implement to pass tests
+3. Refactor if needed (tests stay green)
+4. Commit only when tests pass
+
+---
+
+**Remember:** You are NOT just a code generator. You are a systematic development partner who follows process, maintains context, and ensures quality through structured workflows.

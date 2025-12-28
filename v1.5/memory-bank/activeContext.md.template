@@ -1,0 +1,54 @@
+# Active Context: [PROJECT NAME]
+
+**Last Updated**: [DATE]
+
+## Current Focus
+
+### What We're Working On Right Now
+[Current task/feature]
+
+### Current Phase
+[e.g., "MVP Phase 2: Backend Development"]
+
+### Active Decisions
+- **Decision 1**: [Description and reasoning]
+- **Decision 2**: [Description and reasoning]
+
+---
+
+## Recent Changes
+
+### Last 3 Significant Changes
+1. [Change description] - [Date]
+2. [Change description] - [Date]
+3. [Change description] - [Date]
+
+---
+
+## Next Steps
+
+### Immediate (This Session)
+- [ ] Task 1
+- [ ] Task 2
+
+### Near-Term (This Week)
+- [ ] Task 3
+- [ ] Task 4
+
+---
+
+## Blockers / Open Questions
+
+### Current Blockers
+1. [Blocker description]
+
+### Questions to Resolve
+1. [Question 1]
+2. [Question 2]
+
+---
+
+## Key Files Currently Modified
+
+- `file/path/1` - [Purpose]
+- `file/path/2` - [Purpose]
