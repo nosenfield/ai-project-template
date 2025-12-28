@@ -1,5 +1,5 @@
 #!/bin/bash
-# Initialize new project from template
+# Initialize new project from V1.5 template
 
 set -e  # Exit on error
 
@@ -10,41 +10,71 @@ if [ -z "$PROJECT_NAME" ]; then
   exit 1
 fi
 
-echo "🚀 Setting up new project: $PROJECT_NAME"
+# Get the directory where this script lives (v1.5/scripts/)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATE_DIR="$(dirname "$SCRIPT_DIR")"  # v1.5/
+
+echo "Setting up new project: $PROJECT_NAME"
 echo "========================================="
+echo "Source template: $TEMPLATE_DIR"
 
-# Create project directory
-mkdir -p "../$PROJECT_NAME"
-cd "../$PROJECT_NAME"
+# Create project directory (sibling to ai-project-template)
+PROJECT_DIR="$(dirname "$(dirname "$TEMPLATE_DIR")")/$PROJECT_NAME"
+mkdir -p "$PROJECT_DIR"
+cd "$PROJECT_DIR"
 
-echo "📋 Copying template files..."
+echo ""
+echo "Copying template files..."
 
-# Copy template structure
-cp -r ../ai-project-template/.cursor .
-cp -r ../ai-project-template/memory-bank .
-cp ../ai-project-template/.gitignore .
-cp ../ai-project-template/.cursorignore .
+# Copy .cursor structure (commands, rules, mcp.json)
+cp -r "$TEMPLATE_DIR/.cursor" .
 
-# Copy _docs (excluding guides which aren't used yet)
+# Copy .claude structure (V1.5: subagent definitions)
+cp -r "$TEMPLATE_DIR/.claude" .
+
+# Copy memory-bank templates
+cp -r "$TEMPLATE_DIR/memory-bank" .
+
+# Copy .gitignore and .cursorignore
+cp "$TEMPLATE_DIR/.gitignore" .
+cp "$TEMPLATE_DIR/.cursorignore" .
+
+# Copy CLAUDE.md
+cp "$TEMPLATE_DIR/CLAUDE.md" .
+
+# Copy _docs structure
 mkdir -p _docs/_boilerplate
-cp ../ai-project-template/_docs/README.md _docs/
-cp -r ../ai-project-template/_docs/_boilerplate _docs/
+mkdir -p _docs/_backups
+mkdir -p _docs/best-practices
+mkdir -p _docs/task-list
+mkdir -p _docs/guides
+cp "$TEMPLATE_DIR/_docs/README.md" _docs/
+cp -r "$TEMPLATE_DIR/_docs/_boilerplate"/* _docs/_boilerplate/
+cp "$TEMPLATE_DIR/_docs/_backups/.gitkeep" _docs/_backups/
+cp "$TEMPLATE_DIR/_docs/best-practices/.gitkeep" _docs/best-practices/
+cp "$TEMPLATE_DIR/_docs/task-list/.gitkeep" _docs/task-list/
+cp -r "$TEMPLATE_DIR/_docs/guides"/* _docs/guides/
 
 # Copy tests
-cp -r ../ai-project-template/tests .
+cp -r "$TEMPLATE_DIR/tests" .
 
 # Copy scripts (excluding setup-project.sh which is template-only)
 mkdir -p scripts
-cp ../ai-project-template/scripts/pre-commit scripts/
-cp ../ai-project-template/scripts/post-commit scripts/
-cp ../ai-project-template/scripts/validate-project.sh scripts/
-cp ../ai-project-template/scripts/audit-commits.sh scripts/
-cp ../ai-project-template/scripts/verify-context.sh scripts/
+cp "$TEMPLATE_DIR/scripts/pre-commit" scripts/
+cp "$TEMPLATE_DIR/scripts/post-commit" scripts/
+cp "$TEMPLATE_DIR/scripts/validate-project.sh" scripts/
+cp "$TEMPLATE_DIR/scripts/audit-commits.sh" scripts/
+cp "$TEMPLATE_DIR/scripts/verify-context.sh" scripts/
 
-echo "✏️  Customizing templates..."
+# Create _logs directory
+mkdir -p _logs
+cp "$TEMPLATE_DIR/_logs/.gitkeep" _logs/
+
+echo ""
+echo "Customizing templates..."
 
 # Rename template files
-mv memory-bank/projectBrief.md.template memory-bank/projectBrief.md
+mv memory-bank/projectbrief.md.template memory-bank/projectBrief.md
 mv memory-bank/productContext.md.template memory-bank/productContext.md
 mv memory-bank/activeContext.md.template memory-bank/activeContext.md
 mv memory-bank/systemPatterns.md.template memory-bank/systemPatterns.md
@@ -54,10 +84,12 @@ mv memory-bank/progress.md.template memory-bank/progress.md
 # Replace PROJECT_NAME placeholder
 find memory-bank _docs -type f -name "*.md" -exec sed -i '' "s/\[PROJECT NAME\]/$PROJECT_NAME/g" {} +
 
-echo "📝 Creating initial git repository..."
+echo ""
+echo "Creating initial git repository..."
 git init
 
-echo "🔧 Installing git hooks..."
+echo ""
+echo "Installing git hooks..."
 cp scripts/pre-commit .git/hooks/pre-commit
 cp scripts/post-commit .git/hooks/post-commit
 chmod +x .git/hooks/pre-commit
@@ -67,39 +99,44 @@ chmod +x .git/hooks/post-commit
 rm scripts/pre-commit scripts/post-commit
 
 git add .
-git commit -n -m "chore: initialize project from ai-template [skip-review]"
+git commit -n -m "chore: initialize project from ai-template v1.5 [skip-review]"
 
 echo ""
-echo "✅ Project setup complete!"
+echo "Project setup complete!"
 echo ""
 echo "Git hooks installed - commits will trigger autonomous code review"
 echo ""
 echo "========================================="
-echo "NEXT STEPS: Follow Part 2 in the main README"
+echo "NEXT STEPS"
 echo "========================================="
 echo ""
 echo "1. Navigate to your project:"
-echo "   cd ../$PROJECT_NAME"
+echo "   cd $PROJECT_DIR"
 echo ""
-echo "2. Place your PRD at $PROJECT_NAME/_docs/prd.md:"
+echo "2. Create your PRD at _docs/prd.md"
 echo ""
 echo "3. Optional - Validate your project structure:"
 echo "   ./scripts/validate-project.sh"
 echo ""
-echo "4. Initialize project with Claude Code:"
-echo "   Open Cursor or Claude Code and start a chat with:"
+echo "4. Initialize project with Claude:"
+echo "   Open Cursor or Claude Code and use prompt:"
 echo "   @_docs/_boilerplate/project-prompt-template.md"
 echo ""
-echo "5. If initialized with Claude, ask Claude to update the memory bank based on @$PROJECT_NAME/.cursor/commands/update-memory-bank.md"
-echo "   If initialized with Cursor, use /update-memory-bank command"
+echo "5. Update the memory bank:"
+echo "   Cursor: /update-memory-bank"
+echo "   Claude Code: @.cursor/commands/update-memory-bank.md"
 echo ""
 echo "6. Begin development:"
-echo "   Use /begin-development command in Cursor"
+echo "   Cursor: /begin-development"
+echo "   Claude Code: @.cursor/commands/begin-development.md"
 echo ""
 echo "========================================="
-echo "NOTE"
+echo "V1.5 FEATURES"
 echo "========================================="
-echo "The /begin-development command automatically loads Memory Bank"
-echo "context at the start of each chat. Use this command to ensure"
-echo "Cursor agents have full project context before starting work."
+echo "This project includes subagent delegation for context management:"
+echo "- .claude/agents/explorer.md - Codebase exploration subagent"
+echo "- .claude/agents/implementer.md - Implementation subagent"
+echo "- .cursor/rules/subagent-delegation.mdc - Delegation rules"
+echo ""
+echo "Subagents are triggered automatically based on task complexity."
 echo ""
