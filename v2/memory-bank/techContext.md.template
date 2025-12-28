@@ -1,0 +1,47 @@
+# Technical Context
+
+## Stack Details
+
+### Runtime
+- Node.js: {{version}}
+- {{Other runtime}}: {{version}}
+
+### Dependencies
+| Package | Version | Purpose |
+|---------|---------|---------|
+| {{pkg}} | {{ver}} | {{why}} |
+
+### Dev Dependencies
+| Package | Version | Purpose |
+|---------|---------|---------|
+| {{pkg}} | {{ver}} | {{why}} |
+
+## Configuration
+
+### Environment Variables
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| {{VAR}} | {{purpose}} | {{example}} |
+
+### Build Configuration
+{{Key build settings}}
+
+## Development Setup
+```bash
+# Installation
+{{install commands}}
+
+# Development
+{{dev commands}}
+
+# Testing
+{{test commands}}
+```
+
+## Technical Decisions
+
+### {{Decision Title}}
+- Date: {{date}}
+- Decision: {{what was decided}}
+- Rationale: {{why}}
+- Alternatives Considered: {{what else was considered}}

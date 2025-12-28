@@ -1,0 +1,44 @@
+---
+description: Development standards and patterns
+alwaysApply: false
+globs: ["src/**", "lib/**", "app/**"]
+---
+
+# Development Workflow
+
+## Code Standards
+
+### Function Size
+- Maximum 50 lines per function
+- Extract helper functions for complex logic
+- Single responsibility per function
+
+### Error Handling
+- Never swallow errors silently
+- Use typed errors where language supports
+- Log errors with context (file, function, relevant IDs)
+
+### Naming Conventions
+- Functions: verbNoun (e.g., getUserById, validateInput)
+- Boolean variables: is/has/should prefix
+- Constants: UPPER_SNAKE_CASE
+
+## Patterns
+
+### Before Modifying Code
+1. Read existing file completely
+2. Identify patterns already in use
+3. Match existing style exactly
+4. Check for related test file
+
+### Implementation Order
+1. Types/interfaces first
+2. Unit tests second
+3. Implementation third
+4. Integration tests fourth
+
+## Forbidden
+- `any` type in TypeScript (use `unknown` if necessary)
+- Console.log in production code (use logger)
+- Commented-out code in commits
+- Magic numbers without named constants

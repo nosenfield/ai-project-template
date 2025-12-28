@@ -1,0 +1,29 @@
+# Project Context
+
+## Overview
+{{Brief description of what this project is}}
+
+## Problem Statement
+{{What problem does this solve?}}
+
+## Target Users
+{{Who is this for?}}
+
+## Core Requirements
+{{Key requirements and constraints}}
+
+## Technical Stack
+- Language: {{primary language}}
+- Framework: {{framework if applicable}}
+- Database: {{database if applicable}}
+- Infrastructure: {{hosting/deployment}}
+
+## Success Criteria
+{{How do we know when it's done?}}
+
+## Constraints
+- {{Constraint 1}}
+- {{Constraint 2}}
+
+## Out of Scope
+- {{What this project does NOT include}}

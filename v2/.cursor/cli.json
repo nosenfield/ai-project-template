@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(npm test)",
+      "Shell(npm run *)",
+      "Shell(git status)",
+      "Shell(git diff *)",
+      "Shell(git log *)",
+      "Shell(git add *)",
+      "Shell(git commit *)",
+      "Shell(git stash *)",
+      "Shell(ls *)",
+      "Shell(find *)",
+      "Shell(cat *)",
+      "Shell(head *)",
+      "Shell(tail *)",
+      "Shell(grep *)",
+      "Shell(pwd)",
+      "Shell(echo *)",
+      "Shell(mkdir *)",
+      "Shell(cp *)",
+      "Shell(mv *)"
+    ],
+    "deny": [
+      "Shell(rm -rf *)",
+      "Shell(git push --force *)",
+      "Shell(git reset --hard *)",
+      "Shell(chmod 777 *)",
+      "Shell(curl * | sh)",
+      "Shell(wget * | sh)",
+      "Shell(sudo *)"
+    ]
+  }
+}

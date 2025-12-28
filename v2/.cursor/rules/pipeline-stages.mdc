@@ -1,0 +1,107 @@
+---
+description: Pipeline stage management for complex tasks
+alwaysApply: false
+globs: ["_docs/pipeline-state.json", "_docs/specs/*", "_docs/adrs/*"]
+---
+
+# Pipeline Architecture
+
+## Activation Criteria
+
+Pipeline is OPTIONAL. Recommended when:
+- Task affects >=5 files
+- Task crosses module boundaries
+- Task modifies interfaces
+- Task has high risk/complexity
+
+Enable: `/plan [feature] --pipeline`
+
+## Stage Flow
+
+```
+IDLE → READY_FOR_SPEC → READY_FOR_ARCH → READY_FOR_BUILD → READY_FOR_REVIEW → DONE
+              ↑                                                    │
+              └────────────────────────────────────────────────────┘
+                              (If issues found)
+```
+
+## Stage Definitions
+
+### READY_FOR_SPEC (Optional)
+Purpose: Refine requirements into specification
+
+Skip if: Requirements already clear
+
+Actions:
+1. Read task requirements
+2. Identify ambiguities
+3. Ask clarifying questions
+4. Produce _docs/specs/{task-id}.md
+
+Exit: Specification complete, questions answered
+
+### READY_FOR_ARCH (Optional)
+Purpose: Validate design, produce ADR
+
+Skip if: Changes don't affect architecture
+
+Actions:
+1. Review specification
+2. Identify affected modules
+3. Check for violations
+4. Produce _docs/adrs/{task-id}.md
+
+Exit: ADR approved
+
+### READY_FOR_BUILD (Required)
+Purpose: Implement code and tests
+
+Actions:
+1. Read spec and ADR (if exist)
+2. Write tests first (TDD)
+3. Implement to pass tests
+4. Update documentation
+
+Constraints:
+- Follow ADR exactly
+- No interface changes
+- No unrelated refactoring
+
+Exit: Implementation complete, tests passing
+
+### READY_FOR_REVIEW (Required)
+Purpose: Validate implementation quality
+
+Actions:
+1. Pre-commit hook runs code review
+2. Check against spec/ADR
+3. Identify issues
+
+Exit:
+- APPROVED → DONE
+- ISSUES → Back to READY_FOR_BUILD
+
+### DONE
+Actions:
+1. Commit changes
+2. Update feature-list.json
+3. Clear pipeline state
+
+## Pipeline State Schema
+
+```json
+{
+  "version": "1.0",
+  "currentStage": "IDLE",
+  "currentTask": null,
+  "pipelineEnabled": false,
+  "history": [
+    {
+      "stage": "READY_FOR_SPEC",
+      "timestamp": "ISO-8601",
+      "taskId": "1.1",
+      "outcome": "complete"
+    }
+  ]
+}
+```

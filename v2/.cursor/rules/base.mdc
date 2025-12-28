@@ -1,0 +1,70 @@
+---
+description: Core development principles and orchestrator behavior
+alwaysApply: true
+---
+
+# Core Principles
+
+## Orchestrator Purity
+
+The main agent MUST remain a pure coordinator when context management is needed.
+
+**When to delegate to subagents:**
+- Codebase exploration requiring >5 file reads → explorer
+- Implementation planning requiring research → planner
+- Code implementation >50 lines → implementer
+- Early feedback on changes before commit → code-reviewer
+
+**When direct execution is acceptable:**
+- Simple queries answerable from current context
+- Small edits (<20 lines, single file)
+- Commands that coordinate subagents (/batch, /begin-development)
+
+## Quality Standards
+
+### Code Quality
+- Functions under 50 lines
+- Single responsibility per function/module
+- Explicit error handling
+- Meaningful variable and function names
+- Comments for complex logic only
+
+### Testing
+- Write tests before implementation (TDD)
+- Tests must be independent and repeatable
+- Cover happy path and error cases
+- Integration tests for cross-module functionality
+
+### Documentation
+- Update memory bank after significant changes
+- Document decisions in ADRs for architectural changes
+- Keep _docs/best-practices.md current
+
+## Black Box Interface Design
+
+### Replaceability Test
+Before modifying any module, ask:
+"Could someone reimplement this module using ONLY its interface?"
+
+If no: The abstraction has leaked. Fix the interface before modifying.
+
+### One Obvious Job
+Each module must have ONE primary responsibility.
+If you find yourself saying "this module handles X AND Y", split it.
+
+### Interface-First Changes
+When a task requires cross-module changes:
+1. Define interface changes first
+2. Get interface approved (if pipeline enabled)
+3. Implement against stable interfaces
+4. NEVER modify interfaces during implementation
+
+## Forbidden Patterns
+
+1. Orchestrator implementing complex code directly when context is constrained
+2. Re-reading files a subagent already summarized
+3. Ignoring subagent recommendations without justification
+4. Spawning subagents for trivial tasks
+5. Subagents spawning other subagents
+6. Modifying feature-list.json fields other than `passes`
+7. Committing without staged changes

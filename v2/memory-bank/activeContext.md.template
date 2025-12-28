@@ -1,0 +1,29 @@
+# Active Context
+
+## Current Session
+- Started: {{timestamp}}
+- Focus: {{current feature or task}}
+- Branch: {{git branch}}
+
+## Handoff State
+- Last Agent: {{Cursor / Claude Code / Human}}
+- Session End: {{timestamp}}
+- State: {{Clean / In Progress / Blocked}}
+
+## Recent Changes
+{{Summary of recent work}}
+
+## Current Progress
+- Feature {{id}}: {{status}}
+- Steps completed: {{X of Y}}
+- Blockers: {{none or list}}
+
+## Next Steps
+1. {{Immediate next action}}
+2. {{Following action}}
+
+## Open Questions
+- {{Unresolved issue or decision}}
+
+## Session Notes
+{{Any important context for future sessions}}

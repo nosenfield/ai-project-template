@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "project": "{{PROJECT_NAME}}",
+  "created": "{{ISO_DATE}}",
+  "lastModified": "{{ISO_DATE}}",
+  "features": [
+    {
+      "id": "1.1",
+      "category": "functional",
+      "description": "{{Human-readable description}}",
+      "steps": [
+        "{{Step 1 - user action}}",
+        "{{Step 2 - user action}}",
+        "{{Step 3 - expected result}}"
+      ],
+      "passes": false,
+      "blockedBy": [],
+      "notes": ""
+    }
+  ]
+}

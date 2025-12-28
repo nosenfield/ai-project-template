@@ -1,0 +1,149 @@
+#!/bin/bash
+# Pre-commit hook for V2 scaffold validation and code review
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo "Running V2 pre-commit validations..."
+
+# Check if feature-list.json is staged
+if git diff --cached --name-only | grep -q "memory-bank/feature-list.json"; then
+    echo "Validating feature-list.json changes..."
+
+    # Get the staged version
+    STAGED=$(git show :memory-bank/feature-list.json)
+
+    # Validate JSON syntax
+    if ! echo "$STAGED" | jq . > /dev/null 2>&1; then
+        echo -e "${RED}ERROR: feature-list.json has invalid JSON syntax${NC}"
+        exit 1
+    fi
+
+    # Validate schema
+    REQUIRED_FIELDS='["version", "project", "features"]'
+    for field in version project features; do
+        if ! echo "$STAGED" | jq -e ".$field" > /dev/null 2>&1; then
+            echo -e "${RED}ERROR: feature-list.json missing required field: $field${NC}"
+            exit 1
+        fi
+    done
+
+    # Check for feature mutations (only passes field should change)
+    if git show HEAD:memory-bank/feature-list.json > /dev/null 2>&1; then
+        ORIGINAL=$(git show HEAD:memory-bank/feature-list.json)
+
+        # Extract features without passes field for comparison
+        ORIG_FEATURES=$(echo "$ORIGINAL" | jq '[.features[] | del(.passes, .notes, .deprecated)]' 2>/dev/null || echo "[]")
+        STAGED_FEATURES=$(echo "$STAGED" | jq '[.features[] | del(.passes, .notes, .deprecated)]' 2>/dev/null || echo "[]")
+
+        # Count features
+        ORIG_COUNT=$(echo "$ORIGINAL" | jq '.features | length' 2>/dev/null || echo "0")
+        STAGED_COUNT=$(echo "$STAGED" | jq '.features | length' 2>/dev/null || echo "0")
+
+        if [ "$STAGED_COUNT" -lt "$ORIG_COUNT" ]; then
+            echo -e "${RED}ERROR: Features were removed from feature-list.json${NC}"
+            echo -e "${YELLOW}Features are immutable. Use 'deprecated: true' instead of removing.${NC}"
+            exit 1
+        fi
+
+        # Check if any feature definitions changed (excluding passes, notes, deprecated)
+        if [ "$ORIG_FEATURES" != "$STAGED_FEATURES" ]; then
+            echo -e "${YELLOW}WARNING: Feature definitions may have been modified${NC}"
+            echo -e "${YELLOW}Only 'passes', 'notes', and 'deprecated' fields should change${NC}"
+            echo ""
+            read -p "Continue anyway? (y/N) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                exit 1
+            fi
+        fi
+    fi
+
+    echo -e "${GREEN}feature-list.json validation passed${NC}"
+fi
+
+# Validate pipeline-state.json if staged
+if git diff --cached --name-only | grep -q "_docs/pipeline-state.json"; then
+    echo "Validating pipeline-state.json..."
+
+    STAGED=$(git show :_docs/pipeline-state.json)
+
+    # Validate JSON syntax
+    if ! echo "$STAGED" | jq . > /dev/null 2>&1; then
+        echo -e "${RED}ERROR: pipeline-state.json has invalid JSON syntax${NC}"
+        exit 1
+    fi
+
+    # Validate stage value
+    STAGE=$(echo "$STAGED" | jq -r '.currentStage')
+    VALID_STAGES="IDLE READY_FOR_SPEC READY_FOR_ARCH READY_FOR_BUILD READY_FOR_REVIEW DONE"
+    if ! echo "$VALID_STAGES" | grep -qw "$STAGE"; then
+        echo -e "${RED}ERROR: Invalid pipeline stage: $STAGE${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}pipeline-state.json validation passed${NC}"
+fi
+
+# Run Claude Code CLI review on staged changes
+echo ""
+echo "Running code review..."
+
+# Get staged diff
+DIFF=$(git diff --cached)
+
+if [ -z "$DIFF" ]; then
+    echo -e "${YELLOW}No staged changes to review${NC}"
+    exit 0
+fi
+
+# Check if claude CLI is available
+if ! command -v claude &> /dev/null; then
+    echo -e "${YELLOW}Claude CLI not found - skipping code review${NC}"
+    echo -e "${YELLOW}Install with: npm install -g @anthropic-ai/claude-code${NC}"
+    exit 0
+fi
+
+# Run Claude CLI review
+# Pass diff via stdin, request structured review output
+REVIEW_OUTPUT=$(echo "$DIFF" | claude -p "Review this git diff for code quality issues. Categorize issues as CRITICAL (must fix), WARNING (should fix), or SUGGESTION (consider). Output format:
+
+STATUS: [APPROVED|REJECTED]
+CRITICAL: [count]
+WARNINGS: [count]
+
+[If REJECTED, list CRITICAL issues with file:line and description]
+
+Be concise. Focus on bugs, security issues, and breaking changes." 2>&1)
+
+# Parse review result
+if echo "$REVIEW_OUTPUT" | grep -q "STATUS: APPROVED"; then
+    echo -e "${GREEN}Code review: APPROVED${NC}"
+    echo "$REVIEW_OUTPUT"
+    exit 0
+elif echo "$REVIEW_OUTPUT" | grep -q "STATUS: REJECTED"; then
+    echo -e "${RED}Code review: REJECTED${NC}"
+    echo ""
+    echo "$REVIEW_OUTPUT"
+    echo ""
+    echo -e "${YELLOW}Fix critical issues and try again.${NC}"
+    exit 1
+else
+    # If Claude CLI fails or output is unexpected, warn but allow
+    echo -e "${YELLOW}Code review: Unable to parse result${NC}"
+    echo "$REVIEW_OUTPUT"
+    echo ""
+    read -p "Continue with commit? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}All validations passed${NC}"
+exit 0

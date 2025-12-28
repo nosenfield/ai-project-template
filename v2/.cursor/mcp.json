@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "subagents": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/subagents-mcp"],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# System Patterns
+
+## Architecture Overview
+{{High-level architecture description}}
+
+## Module Structure
+```
+src/
+├── {{module1}}/    # {{purpose}}
+├── {{module2}}/    # {{purpose}}
+└── {{module3}}/    # {{purpose}}
+```
+
+## Design Patterns in Use
+
+### {{Pattern Name}}
+- Location: {{where used}}
+- Purpose: {{why used}}
+- Example: {{brief example or file reference}}
+
+## Conventions
+
+### File Naming
+- Components: {{convention}}
+- Tests: {{convention}}
+- Utilities: {{convention}}
+
+### Code Organization
+- {{Convention 1}}
+- {{Convention 2}}
+
+## Integration Points
+- {{External system}}: {{how integrated}}

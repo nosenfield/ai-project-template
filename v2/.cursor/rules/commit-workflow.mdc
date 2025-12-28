@@ -1,0 +1,53 @@
+---
+description: Commit message and workflow standards
+alwaysApply: false
+globs: ["CHANGELOG.md", ".git/**"]
+---
+
+# Commit Workflow
+
+## Conventional Commits Format
+
+```
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `style`: Formatting, no code change
+- `refactor`: Code change, no feature/fix
+- `test`: Adding/updating tests
+- `chore`: Maintenance tasks
+
+### Scope
+- Module or feature area affected
+- Examples: `auth`, `api`, `ui`, `db`
+
+### Subject
+- Imperative mood ("add" not "added")
+- No period at end
+- Under 50 characters
+
+## Examples
+
+```
+feat(auth): add password reset flow
+
+fix(api): handle null response from payment service
+
+refactor(ui): extract button component from form
+
+test(auth): add integration tests for login flow
+```
+
+## Pre-Commit Checklist
+- [ ] All tests pass
+- [ ] No linter errors
+- [ ] Commit message follows convention
+- [ ] Changes are atomic (single logical change)

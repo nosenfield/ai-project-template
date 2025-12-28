@@ -1,0 +1,92 @@
+---
+description: Context window management and progressive disclosure
+alwaysApply: true
+---
+
+# Context Management
+
+## Progressive Disclosure
+
+Do NOT preload entire files. Instead:
+1. Maintain lightweight identifiers (file paths, function names)
+2. Load data dynamically when needed
+3. Discard details after use, keep summaries
+
+### File Path Registry
+Maintain mental registry of key files without reading content:
+- Configuration: [paths]
+- Core logic: [paths]
+- Tests: [paths]
+- Types/interfaces: [paths]
+
+Read content ONLY when actively working on that file.
+
+### Just-in-Time Retrieval
+Before reading a file, ask:
+- Do I need the ENTIRE file or just a function?
+- Can I grep for the specific part I need?
+- Has a subagent already summarized this?
+- Is there an exploration file in `_docs/exploration/`?
+
+If subagent summarized: Use summary, do NOT re-read.
+
+## Compaction Protocol
+
+### When to Compact
+At high context usage:
+1. Complete current step
+2. Run /summarize --compact
+3. Continue with compressed context
+
+### Compaction Priority (Remove First → Last)
+
+1. **Tool Results** (remove first)
+   - Raw tool outputs
+   - Keep: summaries of findings
+
+2. **Old Task Details**
+   - Completed tasks: Keep (ID, status, commit hash) only
+   - Current task: Keep full details
+
+3. **Code Snippets**
+   - Code from earlier tasks
+   - Keep: file paths and descriptions
+
+4. **Conditional Context** (remove last)
+   - Old commit history
+   - Optional documentation
+
+### Compaction Summary Format
+
+```
+## Context Compacted
+
+Session: [timestamp]
+Feature: [id] - [status]
+Branch: [branch]
+
+Progress:
+- Task 1.1: Complete (commit abc123)
+- Task 1.2: Complete (commit def456)
+- Task 1.3: In progress
+
+Decisions:
+- [Key decision with rationale]
+
+Resume: [specific next action]
+```
+
+## Subagent Context Isolation
+
+Each subagent has its OWN context window:
+- Explorer: Reads 40K+ → Returns 1-2K
+- Planner: Consumes 30K+ → Returns 2-3K
+- Implementer: Consumes 50K+ → Returns 2-3K
+- Code-Reviewer: Analyzes 30K+ → Returns 2-3K
+
+Main agent receives ONLY the summary, preserving context.
+
+### When to Use Subagents for Context
+- Need to read >5 files: Use explorer
+- Need to analyze >3 changed files: Use code-reviewer
+- Implementation >50 lines: Use implementer

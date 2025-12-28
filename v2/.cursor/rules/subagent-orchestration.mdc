@@ -1,0 +1,97 @@
+---
+description: Rules for delegating work to subagents
+alwaysApply: true
+---
+
+# Subagent Orchestration Protocol
+
+## When to Delegate
+
+### Explorer Subagent (via /map)
+MUST use when:
+- Finding files matching patterns
+- Understanding code structure before implementation
+- Mapping dependencies between modules
+- Answering "where is X?" or "how does Y work?"
+
+Invoke: Delegate /map command to explorer subagent
+Returns: File paths, architecture summary (1-2K tokens)
+Output: Saved to `_docs/exploration/{target-slug}.md`
+
+### Planner Subagent (via /plan)
+MUST use when:
+- Creating implementation plans for complex tasks
+- Researching codebase for architecture decisions
+- Assessing impact of proposed changes
+
+Invoke: Delegate /plan command to planner subagent
+Returns: Structured implementation plan (2-3K tokens)
+Output: Saved to `_docs/specs/{feature-id}.md`
+
+### Implementer Subagent (via /implement)
+MUST use when:
+- Writing new features (>50 lines)
+- Modifying code across multiple files
+- Complex refactoring
+- Bug fixes requiring investigation
+
+Invoke: Delegate /implement command to implementer subagent
+Returns: Implementation summary with files changed (2-3K tokens)
+
+### Code-Reviewer Subagent (via /review)
+OPTIONAL for early feedback:
+- After code modifications, before commit
+- When unsure about approach
+- When changes touch >3 files
+
+Invoke: Delegate /review command to code-reviewer subagent
+Returns: Review report with APPROVED/CHANGES REQUESTED (2-3K tokens)
+
+Note: Pre-commit hook provides mandatory final review.
+
+## Delegation Format
+
+When delegating, provide:
+1. Clear task description
+2. Relevant context (feature ID, file paths)
+3. Success criteria
+4. Constraints (what NOT to change)
+
+Example:
+```
+Delegate to implementer subagent:
+
+Task: Add rate limiting to auth endpoints
+Feature: 2.3
+
+Context:
+- Auth endpoints: src/api/auth/*.ts
+- Existing rate limiter: src/middleware/rateLimiter.ts
+- Tests: tests/api/auth/
+- Spec: _docs/specs/2.3.md
+
+Requirements:
+- Add rate limiting to login and register
+- Limit: 5 attempts per minute per IP
+- Return 429 with Retry-After header
+
+Constraints:
+- Do not modify src/api/auth/types.ts
+```
+
+## Context Preservation
+
+When subagent returns:
+1. Capture summary into main context
+2. Do NOT request raw output details
+3. Update memory bank if significant discovery
+4. Continue using summary only
+5. If more detail needed: spawn targeted follow-up
+
+## Forbidden Patterns
+
+1. Orchestrator doing work subagent should do
+2. Re-exploring what subagent already found
+3. Ignoring subagent findings without justification
+4. Parallel subagent spawning without isolation
+5. Subagents spawning other subagents

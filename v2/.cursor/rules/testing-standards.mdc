@@ -1,0 +1,48 @@
+---
+description: Testing requirements and patterns
+alwaysApply: false
+globs: ["**/*.test.*", "**/*.spec.*", "__tests__/**", "tests/**"]
+---
+
+# Testing Standards
+
+## Test Structure
+
+### File Naming
+- Unit tests: `{filename}.test.{ext}`
+- Integration tests: `{filename}.integration.test.{ext}`
+- E2E tests: `{feature}.e2e.test.{ext}`
+
+### Test Organization
+```
+describe('[ModuleName]', () => {
+  describe('[functionName]', () => {
+    it('should [expected behavior] when [condition]', () => {
+      // Arrange
+      // Act
+      // Assert
+    });
+  });
+});
+```
+
+## Coverage Requirements
+- New functions: Minimum 80% coverage
+- Critical paths: 100% coverage
+- Error handling: All error branches tested
+
+## Test Independence
+- No test should depend on another test's state
+- Use fresh fixtures for each test
+- Clean up created resources in afterEach
+
+## Mocking Rules
+- Mock external services and APIs
+- Do not mock the module under test
+- Prefer dependency injection over module mocking
+
+## Forbidden
+- `.skip` or `.only` in committed tests
+- Hardcoded test data that duplicates production data
+- Tests without assertions
+- Sleep/delay in tests (use waitFor patterns)

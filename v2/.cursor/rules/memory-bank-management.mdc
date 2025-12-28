@@ -1,0 +1,83 @@
+---
+description: Memory bank file management and update rules
+alwaysApply: true
+---
+
+# Memory Bank Management
+
+## File Purposes
+
+| File | Purpose | Update Frequency |
+|------|---------|------------------|
+| projectContext.md | Project overview, goals, constraints | Rarely (scope changes) |
+| activeContext.md | Current session state, handoff info | Every session |
+| systemPatterns.md | Architecture patterns, conventions | When patterns change |
+| techContext.md | Technical decisions, stack details | When tech changes |
+| feature-list.json | Feature tracking with pass/fail | When features complete |
+
+## Feature List Rules
+
+### Immutability Principle
+feature-list.json entries are contracts. Once created:
+- ONLY `passes` field may change (false → true)
+- NEVER remove features
+- NEVER edit descriptions or steps
+
+### Modification Rules
+
+**Allowed:**
+```json
+// Change passes from false to true
+{"id": "1.1", "passes": false} → {"id": "1.1", "passes": true}
+```
+
+**Forbidden:**
+```json
+// Removing features
+// Editing descriptions
+// Changing steps
+// Modifying IDs
+```
+
+### Deprecation Pattern
+If a feature is no longer needed:
+```json
+{
+  "id": "1.1",
+  "description": "Original feature",
+  "passes": false,
+  "deprecated": true,
+  "notes": "Superseded by 2.1"
+}
+```
+
+### Verification Before Marking Complete
+Before setting `passes: true`:
+- [ ] All unit tests pass
+- [ ] Integration tests pass (if applicable)
+- [ ] E2E verification complete
+- [ ] Pre-commit review approved
+
+## Update Triggers
+
+### Update activeContext.md When:
+- Starting a session
+- Completing a feature
+- Making significant decisions
+- Pausing work
+- Encountering blockers
+
+### Update feature-list.json When:
+- Feature passes all verification
+- Feature is deprecated
+- Never for any other reason
+
+### Update systemPatterns.md When:
+- New architectural pattern established
+- Existing pattern modified
+- Pattern deprecated
+
+### Update techContext.md When:
+- New technology adopted
+- Configuration changed
+- Dependencies updated
